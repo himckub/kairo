@@ -87,7 +87,7 @@ Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`
 SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand.
 
 ### 🤖 AI — Optional, Never Intrusive
-Gemini integration (`gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language. Invisible until you need it.
+Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language. Invisible until you need it.
 
 ### 🎨 Beautiful by Default
 32 built-in themes with edge-to-edge background coverage. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`). Cinematic create/complete/delete animations — or disable them entirely in `config.toml`.
