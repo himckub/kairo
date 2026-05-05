@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3]
+### Added
+- **Enhanced Data Portability**: All export and import formats (JSON, CSV, Markdown, Text) now fully support nested task hierarchies and folders.
+- **Improved CSV Export**: CSV format now includes all task fields, including ParentID, Collapsed state, and Recurrence rules.
+- **Indented Tree Exports**: Markdown and Text formats now export tasks as a structured tree with indentation to preserve parent-child relationships.
+- **Smart Hierarchy Import**: Markdown and Text imports now automatically reconstruct task nesting based on indentation levels.
+
+### Fixed
+- **Nesting Fidelity**: Resolved an issue where importing or exporting from non-JSON formats would lose parent/child relationships.
+
 ## [1.4.2]
 ### Added
 - **Nested Tasks & Hierarchy**: Support for parent/child task relationships, including collapsible parent tasks and task nesting UI.

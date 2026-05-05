@@ -103,6 +103,7 @@ Organize your workspace into hierarchies.
     - Use **`Space`** on a parent task to toggle its expanded/collapsed state.
     - When a parent is collapsed, all its children are hidden, keeping your view focused.
 - **Hierarchy Visibility**: Tasks are automatically indented based on their nesting level, making it easy to visualize your project structure at a glance.
+- **Export/Import Preservation**: All export formats (JSON, CSV, Markdown, Text) now fully preserve your task hierarchy. Markdown and Text exports use structured indentation that is automatically recognized during import, ensuring your project structure remains intact across any format.
 
 ### It's fast — genuinely fast
 Sub-millisecond fuzzy search. Full keyboard control. Vim bindings (`j/k/gg/G`). Natural language deadlines like `tomorrow 10am` or `next friday`. You never have to leave the keyboard.
