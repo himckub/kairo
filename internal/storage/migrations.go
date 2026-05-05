@@ -59,6 +59,29 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			ALTER TABLE tasks ADD COLUMN collapsed INTEGER NOT NULL DEFAULT 0;
 			CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
 		`},
+		{4, `
+			ALTER TABLE tasks ADD COLUMN completed_at_ms INTEGER NULL;
+			CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed_at_ms);
+
+			CREATE TABLE IF NOT EXISTS sessions (
+				id TEXT PRIMARY KEY,
+				start_time_ms INTEGER NOT NULL,
+				end_time_ms INTEGER NULL,
+				focus_score INTEGER NOT NULL DEFAULT 0
+			);
+
+			CREATE TABLE IF NOT EXISTS events (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				type TEXT NOT NULL,
+				task_id TEXT NULL,
+				timestamp_ms INTEGER NOT NULL,
+				metadata TEXT NULL
+			);
+
+			CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time_ms);
+			CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp_ms);
+			CREATE INDEX IF NOT EXISTS idx_events_task ON events(task_id);
+		`},
 	}
 
 	for _, s := range steps {

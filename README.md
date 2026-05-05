@@ -86,6 +86,9 @@ Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`
 ### 🔒 Your Data, Locally
 SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand.
 
+### 🧭 Interactive Stats Dashboard
+Press `s` to open a next-gen "Command Center". Visualize your **Productivity DNA**, track real-time momentum, and get behavioral insights like "You complete 73% more tasks at night". Fully animated, keyboard-driven, and deeply insightful.
+
 ### 🤖 AI — Optional, Never Intrusive
 Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language. Invisible until you need it.
 
@@ -106,6 +109,7 @@ A Lua plugin system hooks into task events. A headless CLI API enables full scri
 | `z` | Complete task |
 | `d` | Delete task |
 | `Space` | Collapse / expand subtasks |
+| `s` | Stats dashboard |
 | `f` | Filter by tag |
 | `t` | Switch theme |
 | `ctrl+p` | Command palette / Markdown preview |
@@ -119,10 +123,8 @@ A Lua plugin system hooks into task events. A headless CLI API enables full scri
   <img src="screenshots/filter_tags.png" width="30%" />
   <img src="screenshots/help_menu.png" width="30%" />
   <img src="screenshots/settings_menu.png" width="30%" />
-</div>
-
-<div align="center">
   <img src="screenshots/theme_menu.png" width="30%" />
+  <img src="screenshots/dashboard.png" width="30%" />
 </div>
 
 ---

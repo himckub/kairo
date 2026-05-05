@@ -93,6 +93,7 @@ type KeymapConfig struct {
 	Settings       string `toml:"settings"`
 	ImportExport   string `toml:"import_export"`
 	AIPanelToggle  string `toml:"ai_panel_toggle"`
+	Stats          string `toml:"stats"`
 }
 
 func Default() Config {
@@ -161,6 +162,7 @@ func Default() Config {
 			Settings:       "ctrl+s",
 			ImportExport:   "x",
 			AIPanelToggle:  "ctrl+a",
+			Stats:          "s",
 		},
 	}
 }
@@ -301,6 +303,9 @@ func Load() (Config, error) {
 	}
 	if cfg.Keymap.ImportExport == "" {
 		cfg.Keymap.ImportExport = defaults.Keymap.ImportExport
+	}
+	if cfg.Keymap.Stats == "" {
+		cfg.Keymap.Stats = defaults.Keymap.Stats
 	}
 
 	appDir, _ := util.AppDataDir(appName)

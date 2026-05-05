@@ -37,6 +37,7 @@ type Keymap struct {
 	Settings       key.Binding
 	ImportExport   key.Binding
 	AIPanelToggle  key.Binding
+	Stats          key.Binding
 }
 
 func FromConfig(c config.KeymapConfig) Keymap {
@@ -60,7 +61,7 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		CycleTheme:     bind(c.CycleTheme, "theme", "theme menu"),
 		OpenPluginDir:  bind(c.OpenPluginDir, "plugins-dir", "open plugins folder"),
 		ManagePlugins:  bind(c.ManagePlugins, "manage-plugins", "manage plugins"),
-		ToggleStrike:   bind(c.ToggleStrike, "strike", "toggle completion with animation"),
+		ToggleStrike:   key.NewBinding(key.WithKeys("z"), key.WithHelp("strike", "toggle completion with animation")),
 		ToggleCollapse: bind(c.ToggleCollapse, "expand/collapse", "toggle folder/task collapse"),
 		Help:           bind(c.Help, "help", "show help"),
 		Issues:         bind(c.Issues, "issues", "open github issues"),
@@ -69,6 +70,7 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		Settings:       bind(c.Settings, "settings", "open settings"),
 		ImportExport:   bind(c.ImportExport, "import-export", "import or export tasks"),
 		AIPanelToggle:  bind(c.AIPanelToggle, "ai", "toggle AI assistant"),
+		Stats:          bind(c.Stats, "stats", "open stats dashboard"),
 	}
 }
 func bind(keys, helpKey, helpDesc string) key.Binding {

@@ -77,6 +77,7 @@ type Task struct {
 	Collapsed         bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	CompletedAt       *time.Time
 }
 
 func (t Task) NormalizedTags() []string {
@@ -144,6 +145,7 @@ type TaskPatch struct {
 	RecurrenceMonthly *int
 	ParentID          *string
 	Collapsed         *bool
+	CompletedAt       **time.Time
 }
 
 func (p TaskPatch) ApplyTo(t Task) Task {
@@ -180,6 +182,9 @@ func (p TaskPatch) ApplyTo(t Task) Task {
 	if p.Collapsed != nil {
 		t.Collapsed = *p.Collapsed
 	}
+	if p.CompletedAt != nil {
+		t.CompletedAt = *p.CompletedAt
+	}
 	return t
 }
 
@@ -199,11 +204,17 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		Collapsed         bool      `json:"collapsed,omitempty"`
 		CreatedAt         time.Time `json:"created_at"`
 		UpdatedAt         time.Time `json:"updated_at"`
+		CompletedAt       *string   `json:"completed_at,omitempty"`
 	}
 	var d *string
 	if t.Deadline != nil {
 		s := t.Deadline.UTC().Format(time.RFC3339Nano)
 		d = &s
+	}
+	var c *string
+	if t.CompletedAt != nil {
+		s := t.CompletedAt.UTC().Format(time.RFC3339Nano)
+		c = &s
 	}
 	return json.Marshal(wire{
 		ID:                t.ID,
@@ -220,5 +231,6 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		Collapsed:         t.Collapsed,
 		CreatedAt:         t.CreatedAt.UTC(),
 		UpdatedAt:         t.UpdatedAt.UTC(),
+		CompletedAt:       c,
 	})
 }

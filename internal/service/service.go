@@ -57,6 +57,15 @@ type TaskService interface {
 	// Prune performs a hard delete of soft-deleted tasks and optimizes the database.
 	Prune(ctx context.Context) error
 
+	// Sessions
+	CreateSession(ctx context.Context, session core.Session) error
+	UpdateSession(ctx context.Context, id string, endTime time.Time, focusScore int) error
+	ListSessions(ctx context.Context) ([]core.Session, error)
+
+	// Events
+	LogEvent(ctx context.Context, event core.Event) error
+	ListEvents(ctx context.Context) ([]core.Event, error)
+
 	// Hooks returns the event manager for this service.
 	Hooks() *hooks.Manager
 
@@ -238,4 +247,27 @@ func (s *taskService) Prune(ctx context.Context) error {
 		return fmt.Errorf("failed to vacuum database: %w", err)
 	}
 	return nil
+}
+
+func (s *taskService) CreateSession(ctx context.Context, session core.Session) error {
+	return s.repo.CreateSession(ctx, session)
+}
+
+func (s *taskService) UpdateSession(ctx context.Context, id string, endTime time.Time, focusScore int) error {
+	return s.repo.UpdateSession(ctx, id, endTime, focusScore)
+}
+
+func (s *taskService) ListSessions(ctx context.Context) ([]core.Session, error) {
+	return s.repo.ListSessions(ctx)
+}
+
+func (s *taskService) LogEvent(ctx context.Context, event core.Event) error {
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+	return s.repo.CreateEvent(ctx, event)
+}
+
+func (s *taskService) ListEvents(ctx context.Context) ([]core.Event, error) {
+	return s.repo.ListEvents(ctx)
 }

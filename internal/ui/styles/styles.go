@@ -66,6 +66,7 @@ type Styles struct {
 	// Typography
 	Title    lipgloss.Style
 	Subtitle lipgloss.Style
+	Bold     lipgloss.Style
 	Muted    lipgloss.Style
 	Text     lipgloss.Style
 	Accent   lipgloss.Style
@@ -156,6 +157,7 @@ func New(t theme.Theme) Styles {
 		// Typography
 		Title:    base.Bold(true).Foreground(t.Accent),
 		Subtitle: base.Bold(true).Foreground(t.Muted),
+		Bold:     base.Bold(true),
 		Muted:    mutedStyle,
 		Text:     base,
 		Accent:   accentStyle,

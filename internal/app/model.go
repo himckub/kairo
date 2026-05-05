@@ -25,6 +25,7 @@ import (
 	"github.com/programmersd21/kairo/internal/plugins"
 	"github.com/programmersd21/kairo/internal/search"
 	"github.com/programmersd21/kairo/internal/service"
+	istats "github.com/programmersd21/kairo/internal/stats"
 	ksync "github.com/programmersd21/kairo/internal/sync"
 	"github.com/programmersd21/kairo/internal/ui/ai_panel"
 	"github.com/programmersd21/kairo/internal/ui/detail"
@@ -37,6 +38,7 @@ import (
 	"github.com/programmersd21/kairo/internal/ui/plugin_menu"
 	"github.com/programmersd21/kairo/internal/ui/render"
 	"github.com/programmersd21/kairo/internal/ui/settings"
+	"github.com/programmersd21/kairo/internal/ui/stats"
 	"github.com/programmersd21/kairo/internal/ui/styles"
 	"github.com/programmersd21/kairo/internal/ui/tasklist"
 	"github.com/programmersd21/kairo/internal/ui/theme"
@@ -96,6 +98,7 @@ const (
 	ModeSettings
 	ModeImportExport
 	ModeOnboarding
+	ModeStats
 )
 
 type Model struct {
@@ -129,6 +132,7 @@ type Model struct {
 	pm         plugin_menu.Model
 	set        settings.Model
 	iem        import_export_menu.Model
+	stats      stats.Model
 	aiPanel    ai_panel.Model
 	aiClient   *ai.Client
 	aiKey      string
@@ -184,6 +188,20 @@ type Model struct {
 	animationGen int
 }
 
+type statsLoadedMsg struct {
+	Data istats.DashboardData
+}
+
+func (m *Model) loadStatsCmd() tea.Cmd {
+	return func() tea.Msg {
+		tasks, _ := m.svc.ListAll(m.ctx)
+		sessions, _ := m.svc.ListSessions(m.ctx)
+		events, _ := m.svc.ListEvents(m.ctx)
+		data := istats.ComputeDashboard(tasks, sessions, events)
+		return statsLoadedMsg{Data: data}
+	}
+}
+
 func (m *Model) rainbowTickCmd() tea.Cmd {
 	return tea.Tick(150*time.Millisecond, func(time.Time) tea.Msg {
 		return rainbowTickMsg{}
@@ -230,6 +248,7 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 	m.pm = plugin_menu.New(m.s)
 	m.set = settings.New(m.s, cfg)
 	m.iem = import_export_menu.New(m.s)
+	m.stats = stats.New(m.s)
 	m.aiPanel = ai_panel.New(m.s)
 	m.aiChan = make(chan ai_panel.AIChunkMsg, 100)
 	m.aiKey = cfg.App.GeminiAPIKey
@@ -441,6 +460,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tagsLoadedMsg:
 		m.tags = x.Tags
 		m.rebuildPaletteIndex()
+		return m, nil
+
+	case statsLoadedMsg:
+		m.stats.SetData(x.Data)
 		return m, nil
 
 	case allTasksLoadedMsg:
@@ -1147,6 +1170,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					return m, nil
 				}
+				if keymapMatch(m.km.Stats, km) {
+					m.mode = ModeStats
+					var animCmd tea.Cmd
+					if m.cfg.App.Animations {
+						m.transitioning = m.cfg.App.Animations
+						m.transitionStarted = time.Now()
+						animCmd = m.viewTransitionTickCmd()
+					}
+					return m, tea.Batch(m.loadStatsCmd(), m.stats.Init(), animCmd)
+				}
 			}
 
 			if m.mode == ModeList {
@@ -1239,6 +1272,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						t := item.Task
 						m.animationGen++
 						m.animationReverse = (t.Status == core.StatusDone)
+						m.animatingTaskID = t.ID
+						m.animationStarted = time.Now()
+						m.animationDuration = 600 * time.Millisecond
 						if m.cfg.App.Animations {
 							return m, m.strikeAnimationTickCmd(t.ID)
 						}
@@ -1277,6 +1313,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					t := m.det.Task()
 					m.animationGen++
 					m.animationReverse = (t.Status == core.StatusDone)
+					m.animatingTaskID = t.ID
+					m.animationStarted = time.Now()
+					m.animationDuration = 600 * time.Millisecond
 					if m.cfg.App.Animations {
 						return m, m.strikeAnimationTickCmd(t.ID)
 					}
@@ -1374,6 +1413,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.onb, cmd = m.onb.Update(msg)
 		return m, cmd
+	case ModeStats:
+		if km, ok := msg.(tea.KeyMsg); ok {
+			if keymapMatch(m.km.Back, km) || km.String() == "q" {
+				m.mode = ModeList
+				if m.cfg.App.Animations {
+					m.transitioning = m.cfg.App.Animations
+					m.transitionStarted = time.Now()
+					return m, m.viewTransitionTickCmd()
+				}
+				return m, nil
+			}
+		}
+		var cmd tea.Cmd
+		m.stats, cmd = m.stats.Update(msg)
+		return m, cmd
 	}
 
 	return m, nil
@@ -1447,6 +1501,7 @@ func (m *Model) renderMainUI() string {
 	m.hlp.AIEnabled = m.aiKey != ""
 	m.tm.SetSize(mainW, availableHeight)
 	m.iem.SetSize(mainW, availableHeight)
+	m.stats.SetSize(mainW, availableHeight)
 	if m.edit != nil {
 		m.edit.SetSize(mainW, availableHeight)
 	}
@@ -1488,6 +1543,8 @@ func (m *Model) renderMainUI() string {
 		}
 	case ModeImportExport:
 		body = m.iem.View()
+	case ModeStats:
+		body = m.stats.View()
 	case ModeOnboarding:
 		body = m.list.View()
 	default:
@@ -1874,6 +1931,7 @@ func (m *Model) renderFooter() string {
 					makePill(fk(m.km.NewTask) + " " + styles.IconNew + "new"),
 					makePill("f " + styles.IconTag + "tag"),
 					makePill(fk(m.km.ToggleStrike) + " " + styles.IconStrike + "done"),
+					makePill(fk(m.km.Stats) + " stats"),
 					makePill(fk(m.km.DeleteTask) + " " + styles.IconDelete + "delete"),
 					makePill(fk(m.km.Settings) + " settings"),
 				}

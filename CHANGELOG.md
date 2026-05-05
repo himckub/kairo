@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0]
+
+### Added
+- **Command Center Dashboard**: A next-generation interactive stats dashboard accessible via `s`.
+  - **Productivity DNA**: Visualizes task distribution across peak hours with theme-aware color mapping.
+  - **Momentum Engine**: Real-time momentum score calculation based on task completions and focus sessions over the last 3 days.
+  - **Behavioral Insights**: Data-driven, dynamic insights that automatically adapt to your task completion patterns and focus trends.
+  - **Activity Timeline**: Adaptive graph showing task completion trends, with intelligent rendering that cleans up labels when data is low.
+  - **Tag Intelligence**: Heatmap-style visualization of tag clusters, identifying your primary areas of focus.
+- **Deep Analytics Data Model**: 
+  - Added `completed_at` tracking to tasks for precise velocity metrics.
+  - Introduced `sessions` and `events` tables for granular focus and interaction logging.
+- **Premium UI Polish**: Keyboard-driven navigation, thick borders, and adaptive centered layouts that sync seamlessly with global theme colors.
+
 ## [1.4.3]
 ### Added
 - **Enhanced Data Portability**: All export and import formats (JSON, CSV, Markdown, Text) now fully support nested task hierarchies and folders.
