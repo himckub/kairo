@@ -1,47 +1,43 @@
 <div align="center">
 
-# 📚 Kairo
+<img src="screenshots/logo.png" alt="Kairo" width="80" />
 
-**A terminal task manager built for developers who are tired of fighting their tools.**
+# Kairo
 
-Fast. Local. Yours.
+**The terminal task manager for developers who live in their editor.**
 
-![Demo](screenshots/demo.gif)
+No browser tabs. No subscriptions. No mouse. Just your tasks — exactly where your brain already is.
 
 <br/>
 
-<p align="center">
-  <a href="https://github.com/programmersd21/kairo/releases">
-    <img src="https://img.shields.io/github/v/release/programmersd21/kairo?style=for-the-badge&logo=github&color=7c3aed" />
-  </a>
-  <a href="https://github.com/programmersd21/kairo/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/programmersd21/kairo/ci.yml?branch=main&style=for-the-badge&logo=github&color=2563eb" />
-  </a>
-  <a href="https://goreportcard.com/report/github.com/programmersd21/kairo">
-    <img src="https://img.shields.io/badge/go%20report-A%2B-brightgreen?style=for-the-badge&logo=go&logoColor=white" />
-  </a>
-  <img src="https://img.shields.io/github/downloads/programmersd21/kairo/total?style=for-the-badge&logo=github" />
-  <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge" />
-  </a>
-</p>
+[![Release](https://img.shields.io/github/v/release/programmersd21/kairo?style=for-the-badge&logo=github&color=7c3aed)](https://github.com/programmersd21/kairo/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/programmersd21/kairo/ci.yml?branch=main&style=for-the-badge&logo=github&color=2563eb)](https://github.com/programmersd21/kairo/actions)
+[![Go Report](https://img.shields.io/badge/go%20report-A%2B-brightgreen?style=for-the-badge&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/programmersd21/kairo)
+[![Downloads](https://img.shields.io/github/downloads/programmersd21/kairo/total?style=for-the-badge&logo=github)](https://github.com/programmersd21/kairo/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+<br/>
+
+![Kairo Demo](screenshots/demo.gif)
 
 </div>
 
-![Home Screen](screenshots/home_screen.png)
+---
+
+## Why Kairo?
+
+Most task managers make you context-switch out of your flow. Kairo doesn't.
+
+| Pain point | What Kairo does |
+|---|---|
+| GUI apps break your focus | Lives entirely in your terminal |
+| Cloud tools own your data | Everything local, stored in SQLite |
+| Plain-text tools lack structure | Full tagging, filtering, and fuzzy search |
+| Legacy TUIs feel dated | Modern, animated, keyboard-first UX |
 
 ---
 
-You know that feeling when your task manager gets in the way of your actual work?
-
-
-Kairo was built because of that feeling.
-
-No browser tabs. No subscriptions. No mouse. Just you, your terminal, and your tasks — right where your brain already lives.
-
----
-
-## ⚡ Get started in seconds
+## Quick Start
 
 **macOS (Homebrew)**
 ```bash
@@ -68,125 +64,90 @@ Then just run:
 kairo
 ```
 
-Press `n` to create your first task. `ctrl+s` to save it. That's it.
+Press `n` to create your first task. `ctrl+s` to save. That's it.
 
 > Works best on Alacritty. Some terminals may have rendering quirks — see [#16](https://github.com/programmersd21/kairo/issues/16).
 
 ---
 
-## 💫 Star History
+## Features
 
-<a href="https://www.star-history.com/?repos=programmersd21%2Fkairo&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&legend=top-left" />
- </picture>
-</a>
+![Kairo Home Screen](screenshots/home_screen.png)
 
----
+### ⚡ Genuinely Fast
+Sub-millisecond fuzzy search. Vim bindings (`j/k/gg/G`). Natural language deadlines like `tomorrow 10am` or `next friday`. Full keyboard control — you never touch the mouse.
 
-## 🧠 Why Kairo?
+### 🗂 Nested Tasks & Hierarchy
+Organize work into deep hierarchies. Nest tasks via the **Parent** field in the editor, collapse/expand with `Space`, and export/import with full structure preserved — across JSON, CSV, Markdown, and plain text.
 
-Most tools ask you to adapt to them. Kairo adapts to you.
+### 🔁 Recurring Tasks
+Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`15`). When completed, Kairo generates the next instance immediately with a smart due-date preview.
 
-| The problem | What Kairo does instead |
-|---|---|
-| GUI apps pull you away from your flow | Lives entirely in your terminal |
-| Cloud tools own your data | Everything stays local, in SQLite |
-| Plain-text tools lack structure | Full tagging, filtering, and fuzzy search |
-| Legacy TUIs feel clunky | Modern, animated, keyboard-first UX |
+### 🔒 Your Data, Locally
+SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand.
 
-![Filter Tags](screenshots/filter_tags.png)
+### 🤖 AI — Optional, Never Intrusive
+Gemini integration (`gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language. Invisible until you need it.
 
-Your tasks are yours. They don't belong in someone else's cloud.
+### 🎨 Beautiful by Default
+32 built-in themes with edge-to-edge background coverage. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`). Cinematic create/complete/delete animations — or disable them entirely in `config.toml`.
+
+### 🧩 Extensible to the Core
+A Lua plugin system hooks into task events. A headless CLI API enables full scripting. An MCP server opens Kairo to AI agents — with complete support for recurring schedules and nested hierarchies.
 
 ---
 
-## ✨ What it can do
+## Keyboard Shortcuts
 
-### Nested Tasks & Hierarchy
-Organize your workspace into hierarchies. 
-
-- **Creating Nested Tasks**: When creating or editing a task, use the **Parent** field to specify the ID of the parent task. This instantly nests the task under the parent in your list view.
-- **Collapsing/Expanding**: 
-    - Parents with children are marked with an indicator (`▼` for expanded, `▶` for collapsed).
-    - Use **`Space`** on a parent task to toggle its expanded/collapsed state.
-    - When a parent is collapsed, all its children are hidden, keeping your view focused.
-- **Hierarchy Visibility**: Tasks are automatically indented based on their nesting level, making it easy to visualize your project structure at a glance.
-- **Export/Import Preservation**: All export formats (JSON, CSV, Markdown, Text) now fully preserve your task hierarchy. Markdown and Text exports use structured indentation that is automatically recognized during import, ensuring your project structure remains intact across any format.
-
-### It's fast — genuinely fast
-Sub-millisecond fuzzy search. Full keyboard control. Vim bindings (`j/k/gg/G`). Natural language deadlines like `tomorrow 10am` or `next friday`. You never have to leave the keyboard.
-
-### Recurring tasks
-Tasks can automatically reappear based on a schedule. Weekly (e.g. `mon,wed,fri`) or Monthly (e.g. `15`). When a recurring task is completed, Kairo automatically generates the next instance with a smart due date preview in the editor, ensuring you never miss a beat.
-
-### It respects your data
-SQLite storage with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text whenever you want.
-
-### It grows with you
-A Lua plugin system lets you hook into task events. A headless CLI API means you can automate anything. And an MCP server opens Kairo up to AI agents that can read and manage your tasks directly — now with full support for recurring schedules and nested hierarchies.
-
-### AI — when you want it, invisible when you don't
-Optional Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.0-flash-lite` / `gemini-2.5-flash-lite`). Toggle it with `ctrl+a`. It never runs unless you invoke it. Now you can create and manage complex recurring tasks using simple natural language prompts. Your workflow, your call.
-
-### Beautiful by default
-32 built-in themes. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`). Cinematic animations for create, complete, and delete. 
-
-Each theme features a complete color palette that fills your entire terminal window with a seamless, edge-to-edge background — no gaps, no terminal defaults bleeding through. Whether you're in fullscreen mode or a resized window, the themed background covers the entire viewport consistently. All colors are fully reset to your terminal's default when Kairo exits.
-
-**Note:** Animations can be fully disabled in `config.toml` (`animations = false`) or the Settings TUI.
-
----
-
-## ⌨️ The shortcuts that matter
-
-| Key | What it does |
+| Key | Action |
 |---|---|
 | `n` | New task |
-| `Space` | Toggle collapse/expand |
-| `e` | Edit |
-| `z` | Complete |
-| `d` | Delete |
-| `t` | Switch theme |
+| `e` | Edit task |
+| `z` | Complete task |
+| `d` | Delete task |
+| `Space` | Collapse / expand subtasks |
 | `f` | Filter by tag |
-| `ctrl+p` | Command palette / Preview |
-| `ctrl+a` | AI panel | Hidden if API key is missing |
-| `?` | Help | |
-| `ctrl+s` | Settings | |
-| `x` | Import/Export | |
-| `ctrl+d` | Welcome tour | |
+| `t` | Switch theme |
+| `ctrl+p` | Command palette / Markdown preview |
+| `ctrl+a` | AI panel |
+| `ctrl+s` | Settings |
+| `x` | Import / Export |
+| `?` | Help |
+| `ctrl+d` | Welcome tour |
 
-<div style="display: flex; gap: 10px;">
+<div align="center">
+  <img src="screenshots/filter_tags.png" width="30%" />
   <img src="screenshots/help_menu.png" width="30%" />
   <img src="screenshots/settings_menu.png" width="30%" />
+</div>
+
+<div align="center">
   <img src="screenshots/theme_menu.png" width="30%" />
 </div>
 
 ---
 
-## 🚀 Automate everything
+## CLI Automation
 
-Kairo has a full CLI API for scripting and pipelines. It fully supports `parent_id` and `collapsed` state for automation:
+Kairo exposes a full CLI API for scripting and CI pipelines, with complete support for `parent_id` and `collapsed` state:
 
 ```bash
-# Create a task from anywhere
+# Create a task
 kairo api create --title "Finish report" --priority 1
 
-# List tasks by tag
+# List by tag
 kairo api list --tag work
 
-# Mark done
+# Mark complete
 kairo api update --id <id> --status done
 
-# Export your whole list
+# Export everything
 kairo export --format markdown
 ```
 
 ---
 
-## 🧩 Extend it with Lua
+## Lua Plugin System
 
 ```lua
 local plugin = {
@@ -202,34 +163,35 @@ end)
 return plugin
 ```
 
-**Find sample plugins [here](https://github.com/programmersd21/kairo/tree/main/plugins).**
+Browse [sample plugins →](https://github.com/programmersd21/kairo/tree/main/plugins)
 
 ---
 
-## 🧱 How it's built
+## Architecture
 
 ```
-Your input (CLI / TUI / Lua / AI)
-          ↓
-  Task Service (single source of truth)
-          ↓
-  SQLite (WAL) + optional Git sync
-          ↓
-  Bubble Tea TUI (instant rendering)
+Input  (CLI · TUI · Lua · AI)
+       ↓
+Task Service  (single source of truth)
+       ↓
+SQLite (WAL)  +  optional Git sync
+       ↓
+Bubble Tea TUI  (instant rendering)
 ```
 
 **Stack:** Bubble Tea · Lip Gloss · SQLite (WAL) · GopherLua · Gemini API · Git
 
 ---
 
-## ✅ Everything included
+## Everything Included
 
 | Feature | Status |
 |---|---|
 | Local-first SQLite storage | ✅ |
-| Folders & Nested Tasks | ✅ |
-| Full TUI with 32 themes | ✅ |
+| Nested tasks & folders | ✅ |
+| 32 themes, live switching | ✅ |
 | Keyboard-only workflow | ✅ |
+| Recurring tasks | ✅ |
 | Git sync (no backend) | ✅ |
 | Lua plugin system | ✅ |
 | CLI automation API | ✅ |
@@ -239,9 +201,9 @@ Your input (CLI / TUI / Lua / AI)
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
-Auto-generated on first run:
+Auto-generated on first run at:
 
 - **Linux:** `~/.config/kairo/config.toml`
 - **macOS:** `~/Library/Application Support/kairo/config.toml`
@@ -250,17 +212,17 @@ Auto-generated on first run:
 | Option | Description | Default |
 |---|---|---|
 | `theme` | UI theme name | `catppuccin` |
-| `vim_mode` | Enable Vim keybindings | `false` |
-| `show_help` | Show help footer | `true` |
-| `show_id` | Show task IDs in detail view | `true` |
-| `animations` | Enable UI animations | `true` |
+| `vim_mode` | Vim keybindings | `false` |
+| `show_help` | Help footer | `true` |
+| `show_id` | Task IDs in detail view | `true` |
+| `animations` | UI animations | `true` |
 | `rainbow` | Animated rainbow logo | `false` |
 
-Prefer in-app settings? `ctrl+s` opens the settings menu.
+Prefer not to edit files? `ctrl+s` opens the in-app settings menu.
 
 ---
 
-## 🗺 What's coming
+## Roadmap
 
 - Encrypted multi-workspace support
 - Event-sourced sync engine
@@ -271,21 +233,31 @@ Prefer in-app settings? `ctrl+s` opens the settings menu.
 
 ---
 
-## 🤝 Contributing
+## Star History
 
-If something bugs you, fix it. PRs are welcome — especially for themes, plugins, performance, and docs.
-
-A huge thank you to [@Tornado300](https://github.com/Tornado300) for key bug fixes and contributions that made Kairo better for everyone.
+<a href="https://www.star-history.com/?repos=programmersd21%2Fkairo&type=date&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&legend=top-left" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=programmersd21/kairo&type=date&legend=top-left" />
+  </picture>
+</a>
 
 ---
 
-## ⭐ If Kairo helps you
+## Contributing
 
-Star the repo. It's the simplest way to help other developers find this tool and spend less time fighting their workflow.
+PRs are welcome — especially for themes, plugins, performance, and docs. If something bugs you, fix it.
+
+Huge thanks to [@Tornado300](https://github.com/Tornado300) for key bug fixes that made Kairo better for everyone.
 
 ---
 
 <div align="center">
+
+**If Kairo saves you time, a ⭐ helps other developers find it.**
+
+<br/>
 
 *Built for the terminal. Built for focus. Built for you.*
 
