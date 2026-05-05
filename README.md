@@ -10,10 +10,21 @@ Fast. Local. Yours.
 
 <br/>
 
-[![Release](https://img.shields.io/github/v/release/programmersd21/kairo?style=for-the-badge&logo=github&color=7c3aed)](https://github.com/programmersd21/kairo/releases)
-[![CI](https://img.shields.io/github/actions/workflow/status/programmersd21/kairo/ci.yml?branch=main&style=for-the-badge&logo=github&color=2563eb)](https://github.com/programmersd21/kairo/actions)
-[![Go Report Card](https://img.shields.io/badge/go%20report-A%2B-brightgreen?style=for-the-badge&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/programmersd21/kairo)
-[![License: MIT](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <a href="https://github.com/programmersd21/kairo/releases">
+    <img src="https://img.shields.io/github/v/release/programmersd21/kairo?style=for-the-badge&logo=github&color=7c3aed" />
+  </a>
+  <a href="https://github.com/programmersd21/kairo/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/programmersd21/kairo/ci.yml?branch=main&style=for-the-badge&logo=github&color=2563eb" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/programmersd21/kairo">
+    <img src="https://img.shields.io/badge/go%20report-A%2B-brightgreen?style=for-the-badge&logo=go&logoColor=white" />
+  </a>
+  <img src="https://img.shields.io/github/downloads/programmersd21/kairo/total?style=for-the-badge&logo=github" />
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge" />
+  </a>
+</p>
 
 </div>
 
