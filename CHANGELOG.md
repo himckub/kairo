@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-05-06
+
+### Added
+- Dashboard-style Empty State: Transformed the empty home screen into a modular 'Momentum Dashboard' with productivity velocity metrics and clean, bordered layout.
+- Parent Selection Dialog: Replaced manual task ID entry with an interactive task palette for parent task selection.
+- Full API/MCP Field Coverage: Exposed all task fields (WaitUntil, Recurrence, Until, ParentID) to the API and AI Assistant.
+
+### Changed
+- Minimalist UI Overhaul: Replaced heavy borders with whitespace for a cleaner, Apple-inspired aesthetic.
+- Global Spacing: Standardized padding and layout margins across all views.
+- Typography: Refined font weights and hierarchy for better visual focus.
+- Unified Powerline Pills: Standardized all pill caps across tabs, status badges, priority tags, and tag filters for cohesive design.
+- AI Assistant Panel: Refined layout with multi-line input box and full-height divider for a premium feel.
+
+### Fixed
+- AI task creation reliability: Resolved race condition in message routing and improved date parsing robustness in the API.
+- AI context persistence: Fixed bug where conversation history was lost between prompts.
+- Editor compilation errors: Fixed syntax and scope issues in parent selection logic.
+- UI Redundancy: Removed duplicate selection indicators in task list.
+- AI System Prompt: Enforced strict schema adherence for AI tool calls, enabling reliable persistence of all task attributes via natural language.
+
 ## [1.5.1] - 2026-05-06
 
 ### Fixed

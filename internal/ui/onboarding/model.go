@@ -18,6 +18,10 @@ const (
 	StepNavigation
 	StepCreation
 	StepCompletion
+	StepDashboard
+	StepAI
+	StepRecurring
+	StepAdvanced
 	StepFinish
 )
 
@@ -96,6 +100,24 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case StepCompletion:
 			if x.String() == "z" {
+				m.step = StepDashboard
+			}
+		case StepDashboard:
+			if x.String() == "s" {
+				m.step = StepAI
+			}
+		case StepAI:
+			// Some terminals/OSes don't reliably set KeyMsg.Type for Ctrl combos.
+			// Accept both the normalized string and the control-key type.
+			if x.Type == tea.KeyCtrlA || strings.EqualFold(x.String(), "ctrl+a") {
+				m.step = StepRecurring
+			}
+		case StepRecurring:
+			if x.String() == "enter" {
+				m.step = StepAdvanced
+			}
+		case StepAdvanced:
+			if x.String() == "ctrl+s" {
 				m.step = StepFinish
 			}
 		case StepFinish:
@@ -145,10 +167,26 @@ func (m Model) View() string {
 		title = "MARK AS DONE"
 		body = "The best part of productivity is checking things off."
 		action = "Press [Z] to complete a task"
+	case StepDashboard:
+		title = "COMMAND CENTER"
+		body = "Analyze your productivity, momentum, and focus trends in the Command Center."
+		action = "Press [S] to open Dashboard"
+	case StepAI:
+		title = "AI ASSISTANT"
+		body = "Leverage Gemini to manage tasks, get insights, or control the app via natural language."
+		action = "Press [CTRL+A] to open AI panel"
+	case StepRecurring:
+		title = "RECURRING TASKS"
+		body = "Automatically handle repeating work. Kairo handles the scheduling for you."
+		action = "Press [ENTER] to continue"
+	case StepAdvanced:
+		title = "ADVANCED CONFIG"
+		body = "Fine-tune Kairo's behavior, themes, and keybindings in the Settings menu."
+		action = "Press [CTRL+S] for Settings"
 	case StepFinish:
 		title = "YOU'RE ALL SET"
-		body = "Explore commands with [CTRL+P] or open help with [?].\n\n(Tip: You can relaunch this tour anytime with [CTRL+D])"
-		action = "Press [ENTER] to begin"
+		body = "You're now proficient with Kairo! Explore more via the palette [CTRL+P].\n\n(Tip: Relaunch tour anytime with [CTRL+D])"
+		action = "Press [ENTER] to finish"
 	}
 
 	progress := m.renderProgress()
@@ -180,7 +218,7 @@ func (m Model) View() string {
 }
 
 func (m Model) renderProgress() string {
-	steps := 5
+	steps := 9
 	var b strings.Builder
 	for i := 0; i < steps; i++ {
 		if i == int(m.step) {

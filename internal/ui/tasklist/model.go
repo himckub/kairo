@@ -320,51 +320,7 @@ func (m Model) renderEmpty() string {
 	boxWidth := min(64, m.width-4)
 	accent := m.styles.Theme.Accent
 
-	// 1. Dynamic Greeting
-	hour := time.Now().Hour()
-	var greeting string
-	if hour < 12 {
-		greeting = "Good morning"
-	} else if hour < 18 {
-		greeting = "Good afternoon"
-	} else {
-		greeting = "Good evening"
-	}
-
-	header := lipgloss.NewStyle().
-		Foreground(accent).
-		Background(m.styles.Theme.Bg).
-		Bold(true).
-		Width(boxWidth).
-		Align(lipgloss.Center).
-		Render(greeting)
-
-	// 2. Central Icon & Motivation
-	icon := lipgloss.NewStyle().
-		Foreground(accent).
-		Background(m.styles.Theme.Bg).
-		Bold(true).
-		Width(boxWidth).
-		Align(lipgloss.Center).
-		MarginBottom(1).
-		Render("")
-
-	title := lipgloss.NewStyle().
-		Foreground(m.styles.Theme.Fg).
-		Background(m.styles.Theme.Bg).
-		Bold(true).
-		Width(boxWidth).
-		Align(lipgloss.Center).
-		Render("Nothing on the horizon")
-
-	subtitle := lipgloss.NewStyle().
-		Foreground(m.styles.Theme.Muted).
-		Background(m.styles.Theme.Bg).
-		Width(boxWidth).
-		Align(lipgloss.Center).
-		Render("Your schedule is perfectly clear.")
-
-	// 3. Quick Stats (if applicable)
+	// 1. Productivity Velocity
 	completedCount := 0
 	for _, t := range m.allTasks {
 		if t.Status == core.StatusDone {
@@ -372,36 +328,61 @@ func (m Model) renderEmpty() string {
 		}
 	}
 
-	stats := ""
+	velocity := ""
 	if completedCount > 0 {
-		statsText := fmt.Sprintf("You've conquered %d tasks so far. Ready for more?", completedCount)
-		stats = lipgloss.NewStyle().
+		velocity = lipgloss.NewStyle().
 			Foreground(m.styles.Theme.Good).
 			Background(m.styles.Theme.Bg).
-			Margin(1, 0, 0, 0).
+			Padding(1, 0).
 			Width(boxWidth).
 			Align(lipgloss.Center).
-			Render("󰄬 " + statsText)
+			Render(fmt.Sprintf("󰄬 %d Tasks Completed", completedCount))
+	} else {
+		velocity = lipgloss.NewStyle().
+			Foreground(m.styles.Theme.Muted).
+			Padding(1, 0).
+			Width(boxWidth).
+			Align(lipgloss.Center).
+			Render("No recent velocity data.")
 	}
 
-	// 4. Action Hint
+	// 2. Greeting & Motivation
+	hour := time.Now().Hour()
+	greeting := "Good evening"
+	if hour < 12 {
+		greeting = "Good morning"
+	} else if hour < 18 {
+		greeting = "Good afternoon"
+	}
+
+	header := lipgloss.NewStyle().
+		Foreground(accent).
+		Bold(true).
+		Width(boxWidth).
+		Align(lipgloss.Center).
+		Render(greeting)
+
+	body := lipgloss.NewStyle().
+		Foreground(m.styles.Theme.Fg).
+		Width(boxWidth).
+		Align(lipgloss.Center).
+		Render("Nothing on the horizon. Your schedule is clear.")
+
+	// 3. Action Hint
 	paletteKeys := strings.Join(m.km.Palette.Keys(), ", ")
 	hint := lipgloss.NewStyle().
 		Foreground(m.styles.Theme.Muted).
-		Background(m.styles.Theme.Bg).
 		Italic(true).
-		Margin(2, 0, 0, 0).
+		MarginTop(2).
 		Width(boxWidth).
 		Align(lipgloss.Center).
-		Render(fmt.Sprintf("Tip: Press 'n' for a new task or %s for the palette", paletteKeys))
+		Render(fmt.Sprintf("Press 'n' to create or %s for tools", paletteKeys))
 
-	// Composite
+	// Composite inside a minimal border
 	dashboard := lipgloss.JoinVertical(lipgloss.Center,
-		icon,
 		header,
-		title,
-		subtitle,
-		stats,
+		body,
+		velocity,
 		hint,
 	)
 
@@ -409,7 +390,7 @@ func (m Model) renderEmpty() string {
 		Width(m.width).
 		Height(m.height).
 		Align(lipgloss.Center, lipgloss.Center).
-		Render(dashboard)
+		Render(m.styles.Overlay.Width(boxWidth).Padding(2).Render(dashboard))
 }
 func (m Model) renderRow(item TaskItem, selected bool) string {
 	t := item.Task
@@ -457,10 +438,14 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 		statusStyle = lipgloss.NewStyle().Foreground(m.styles.Theme.Good).Background(rowBg)
 	}
 
-	// Selection indicator — stays in place, no spatial shifting
-	indicator := lipgloss.NewStyle().Background(rowBg).Render("  ")
+	// Selection indicator — only the thick left border
+	indicator := lipgloss.NewStyle().Background(rowBg).Render("")
 	if selected {
-		indicator = lipgloss.NewStyle().Foreground(m.styles.Theme.Accent).Background(rowBg).Render("\u2503 ")
+		indicator = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(m.styles.Theme.Accent).
+			Background(rowBg).
+			Render(" ")
 	}
 
 	// Hierarchy indentation and icons
@@ -564,10 +549,15 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 			if len(t.Tags) > 0 {
 				tagParts := []string{}
 				for _, tag := range t.Tags {
+					tagContent := m.styles.Tag.
+						Background(m.styles.Theme.Accent).
+						Foreground(m.styles.Theme.Bg).
+						Padding(0, 0).
+						Render(tag)
 					pill := lipgloss.JoinHorizontal(lipgloss.Left,
-						m.styles.TagLeft.Render(),
-						m.styles.Tag.Render(tag),
-						m.styles.TagRight.Render(),
+						m.styles.TagLeft.Foreground(m.styles.Theme.Accent).Render(),
+						tagContent,
+						m.styles.TagRight.Foreground(m.styles.Theme.Accent).Render(),
 					)
 					tagParts = append(tagParts, pill)
 				}

@@ -31,6 +31,7 @@ type SavePatchMsg struct {
 	Patch core.TaskPatch
 }
 type CloseMsg struct{}
+type SelectParentMsg struct{}
 
 type Model struct {
 	styles styles.Styles
@@ -229,6 +230,10 @@ func (m *Model) SetSize(w, h int) {
 	m.renderer = r
 }
 
+func (m *Model) SetParentID(id string) {
+	m.parentID.SetValue(id)
+}
+
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -256,6 +261,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.showPreview = !m.showPreview
 			m.SetSize(m.width, m.height)
 			return m, nil
+		case "enter":
+			if m.focus == 8 {
+				return m, func() tea.Msg { return SelectParentMsg{} }
+			}
 		}
 	}
 
@@ -374,7 +383,17 @@ func (m Model) View() string {
 		fields = append(fields, m.styles.Muted.Padding(0, 2).Render(m.untilPreview))
 	}
 
-	fields = append(fields, renderField("󱗼 ", "Parent:", m.parentID.View(), m.focus == 8))
+	// Replace parentID text input field with a selection field
+	parentIDDisplay := m.parentID.Value()
+	if parentIDDisplay == "" {
+		parentIDDisplay = "None"
+	}
+	parentField := renderField("󱗼 ", "Parent:", parentIDDisplay, m.focus == 8)
+	// Add an action hint for selecting
+	if m.focus == 8 {
+		parentField += m.styles.Muted.PaddingLeft(2).Render("press enter to select")
+	}
+	fields = append(fields, parentField)
 
 	descView := m.desc.View()
 	fields = append(fields, lipgloss.NewStyle().Padding(0, 2).Render(descView))

@@ -72,7 +72,7 @@ func (m *Model) SetSize(w, h int) {
 		m.wrapW = 1
 	}
 	m.Input.Width = m.wrapW - 6
-	m.Viewport = viewport.New(m.wrapW, m.Height-7)
+	m.Viewport = viewport.New(m.wrapW, m.Height-9)
 }
 
 // SetSizeExact sets the panel to exact dimensions (used when the main model
@@ -88,7 +88,7 @@ func (m *Model) SetSizeExact(w, h int) {
 	if m.wrapW < 1 {
 		m.wrapW = 1
 	}
-	vpH := h - 7
+	vpH := h - 9
 	if vpH < 1 {
 		vpH = 1
 	}
@@ -217,8 +217,9 @@ func (m Model) View() string {
 	// ── Chat viewport ──
 	chat := m.Viewport.View()
 
-	// ── Input area ──
-	inputBox := m.Styles.InputBorder.Width(innerW - 4).Render(m.Input.View())
+	// ── Input area (Multi-line) ──
+	m.Input.TextStyle = lipgloss.NewStyle().Foreground(m.Styles.Panel.GetForeground())
+	inputBox := m.Styles.InputBorder.Width(innerW - 4).Height(3).Render(m.Input.View())
 
 	// ── Footer ──
 	footer := m.Styles.Footer.Width(innerW).Align(lipgloss.Center).

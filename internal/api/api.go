@@ -12,6 +12,7 @@ import (
 	"github.com/programmersd21/kairo/internal/config"
 	"github.com/programmersd21/kairo/internal/core"
 	"github.com/programmersd21/kairo/internal/core/codec"
+	"github.com/programmersd21/kairo/internal/core/nlp"
 	"github.com/programmersd21/kairo/internal/service"
 )
 
@@ -104,6 +105,8 @@ type TaskDTO struct {
 	Priority          int      `json:"priority"`
 	Status            string   `json:"status"`
 	Deadline          *string  `json:"deadline,omitempty"`
+	WaitUntil         *string  `json:"wait_until,omitempty"`
+	Until             *string  `json:"until,omitempty"`
 	Recurrence        string   `json:"recurrence,omitempty"`
 	RecurrenceWeekly  []string `json:"recurrence_weekly,omitempty"`
 	RecurrenceMonthly int      `json:"recurrence_monthly,omitempty"`
@@ -134,6 +137,14 @@ func toDTO(t core.Task) TaskDTO {
 		s := t.Deadline.Format("2006-01-02T15:04:05Z")
 		dto.Deadline = &s
 	}
+	if t.WaitUntil != nil {
+		s := t.WaitUntil.Format("2006-01-02T15:04:05Z")
+		dto.WaitUntil = &s
+	}
+	if t.Until != nil {
+		s := t.Until.Format("2006-01-02T15:04:05Z")
+		dto.Until = &s
+	}
 	return dto
 }
 
@@ -146,6 +157,8 @@ func (api *TaskAPI) handleCreate(ctx context.Context, payload json.RawMessage) R
 		Priority          *int     `json:"priority,omitempty"`
 		Status            string   `json:"status,omitempty"`
 		Deadline          *string  `json:"deadline,omitempty"`
+		WaitUntil         *string  `json:"wait_until,omitempty"`
+		Until             *string  `json:"until,omitempty"`
 		Recurrence        string   `json:"recurrence,omitempty"`
 		RecurrenceWeekly  []string `json:"recurrence_weekly,omitempty"`
 		RecurrenceMonthly *int     `json:"recurrence_monthly,omitempty"`
@@ -173,11 +186,15 @@ func (api *TaskAPI) handleCreate(ctx context.Context, payload json.RawMessage) R
 		Description:       p.Description,
 		Tags:              p.Tags,
 		Status:            core.StatusTodo,
-		Recurrence:        core.RecurrenceType(p.Recurrence),
+		Recurrence:        core.RecurrenceNone,
 		RecurrenceWeekly:  p.RecurrenceWeekly,
 		RecurrenceMonthly: 0,
 		ParentID:          p.ParentID,
 		Collapsed:         p.Collapsed,
+	}
+
+	if p.Recurrence != "" {
+		task.Recurrence = core.RecurrenceType(p.Recurrence)
 	}
 
 	if p.RecurrenceMonthly != nil {
@@ -191,9 +208,21 @@ func (api *TaskAPI) handleCreate(ctx context.Context, payload json.RawMessage) R
 		task.Priority = core.Priority(*p.Priority)
 	}
 	if p.Deadline != nil {
-		t, err := time.Parse(time.RFC3339, *p.Deadline)
-		if err == nil {
-			task.Deadline = &t
+		t, err := nlp.ParseDeadline(*p.Deadline, time.Now())
+		if err == nil && t != nil {
+			task.Deadline = t
+		}
+	}
+	if p.WaitUntil != nil {
+		t, err := nlp.ParseDeadline(*p.WaitUntil, time.Now())
+		if err == nil && t != nil {
+			task.WaitUntil = t
+		}
+	}
+	if p.Until != nil {
+		t, err := nlp.ParseDeadline(*p.Until, time.Now())
+		if err == nil && t != nil {
+			task.Until = t
 		}
 	}
 
@@ -256,6 +285,8 @@ func (api *TaskAPI) handleUpdate(ctx context.Context, payload json.RawMessage) R
 		Priority          *int     `json:"priority,omitempty"`
 		Status            *string  `json:"status,omitempty"`
 		Deadline          *string  `json:"deadline,omitempty"`
+		WaitUntil         *string  `json:"wait_until,omitempty"`
+		Until             *string  `json:"until,omitempty"`
 		Recurrence        *string  `json:"recurrence,omitempty"`
 		RecurrenceWeekly  []string `json:"recurrence_weekly,omitempty"`
 		RecurrenceMonthly *int     `json:"recurrence_monthly,omitempty"`
@@ -315,10 +346,36 @@ func (api *TaskAPI) handleUpdate(ctx context.Context, payload json.RawMessage) R
 			var nilTime *time.Time
 			patch.Deadline = &nilTime
 		} else {
-			t, err := time.Parse(time.RFC3339, *p.Deadline)
-			if err == nil {
-				timePtr := &t
+			t, err := nlp.ParseDeadline(*p.Deadline, time.Now())
+			if err == nil && t != nil {
+				timePtr := t
 				patch.Deadline = &timePtr
+			}
+		}
+	}
+
+	if p.WaitUntil != nil {
+		if *p.WaitUntil == "" {
+			var nilTime *time.Time
+			patch.WaitUntil = &nilTime
+		} else {
+			t, err := nlp.ParseDeadline(*p.WaitUntil, time.Now())
+			if err == nil && t != nil {
+				timePtr := t
+				patch.WaitUntil = &timePtr
+			}
+		}
+	}
+
+	if p.Until != nil {
+		if *p.Until == "" {
+			var nilTime *time.Time
+			patch.Until = &nilTime
+		} else {
+			t, err := nlp.ParseDeadline(*p.Until, time.Now())
+			if err == nil && t != nil {
+				timePtr := t
+				patch.Until = &timePtr
 			}
 		}
 	}

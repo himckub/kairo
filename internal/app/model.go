@@ -142,9 +142,10 @@ type Model struct {
 
 	tagFilterInput textinput.Model // Input field for direct tag filtering in Tag View
 
-	palFullIdx   *search.Index
-	palTasksIdx  *search.Index
-	palTasksOnly bool
+	palFullIdx      *search.Index
+	palTasksIdx     *search.Index
+	palTasksOnly    bool
+	selectingParent bool
 
 	tasks []core.Task
 	all   []core.Task
@@ -700,13 +701,23 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode != ModePalette {
 			return m, nil
 		}
+
+		if m.selectingParent {
+			m.selectingParent = false
+			if m.edit != nil && x.Item.Kind == search.KindTask {
+				m.edit.SetParentID(x.Item.ID)
+			}
+			m.mode = ModeEditor
+			return m, nil
+		}
+
 		m.mode = ModeList
 		switch x.Item.Kind {
 		case search.KindTask:
 			return m, m.fetchOpenTaskCmd(x.Item.ID)
 		case search.KindTag:
 			m.tagFilter.Set(x.Item.ID)
-			m.prevActiveIdx = m.activeIdx
+			// ... (rest of the transition code)
 			m.setActiveView(core.ViewTag)
 			m.transitioning = m.cfg.App.Animations
 			if m.transitioning {
@@ -737,6 +748,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case editor.SavePatchMsg:
 		return m, tea.Batch(m.updateTaskCmd(x.ID, x.Patch), func() tea.Msg { return editor.CloseMsg{} })
 
+	case editor.SelectParentMsg:
+		m.palTasksOnly = true
+		m.selectingParent = true
+		m.applyPaletteIndex()
+		m.pal.SetPlaceholder("Select parent task…")
+		m.mode = ModePalette
+		var animCmd tea.Cmd
+		if m.cfg.App.Animations {
+			m.transitioning = m.cfg.App.Animations
+			m.transitionStarted = time.Now()
+			animCmd = m.viewTransitionTickCmd()
+		}
+		return m, tea.Batch(m.pal.Open(), animCmd)
+
 	case taskCreatedMsg:
 		m.creatingTaskID = x.Task.ID
 		m.creationStarted = time.Now()
@@ -759,13 +784,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.loadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
 
 	case string: // AI prompt from panel
-		return m, m.startAIStreamCmd(x)
+		return m, tea.Batch(m.startAIStreamCmd(x), m.listenAICmd())
 
 	case ai_panel.AIChunkMsg:
 		var cmds []tea.Cmd
 		var cmd tea.Cmd
 		m.aiPanel, cmd = m.aiPanel.Update(x)
 		cmds = append(cmds, cmd, m.listenAICmd())
+
+		if x.Chunk.History != nil {
+			m.aiPanel.History = x.Chunk.History
+		}
 
 		if x.Chunk.Refresh {
 			m.statusText = "AI updated database"
@@ -900,6 +929,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if km, ok := msg.(tea.KeyMsg); ok {
+		if m.mode == ModeOnboarding {
+			var cmd tea.Cmd
+			m.onb, cmd = m.onb.Update(msg)
+			// Bubble up commands from onboarding
+			if cmd != nil {
+				return m, cmd
+			}
+			return m, nil
+		}
+
 		// AI Panel priority
 		if m.aiPanel.Visible {
 			// AIPanelToggle still toggles
@@ -1763,11 +1802,9 @@ func (m *Model) renderHeader() string {
 	}
 
 	for i, v := range m.views {
-		style := m.s.TabInactive
 		isActive := false
 		// During transition, we treat them all as inactive to show them "behind" the bubble
 		if i == m.activeIdx && (!m.transitioning || m.prevActiveIdx == m.activeIdx) {
-			style = m.s.TabActive
 			isActive = true
 		}
 
@@ -1775,14 +1812,18 @@ func (m *Model) renderHeader() string {
 
 		var rendered string
 		if isActive {
-			l := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
-			r := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
-			rendered = l + style.Render(title) + r
+			l := m.s.TagLeft.Foreground(m.s.Theme.Accent).Render()
+			r := m.s.TagRight.Foreground(m.s.Theme.Accent).Render()
+
+			activePill := lipgloss.NewStyle().
+				Foreground(m.s.Theme.Bg).
+				Background(m.s.Theme.Accent).
+				Render(title)
+
+			rendered = l + activePill + r
 		} else {
-			// Use background colored pill ends so the spacing matches the active tab
-			l := lipgloss.NewStyle().Foreground(m.s.Theme.Bg).Background(m.s.Theme.Bg).Render("")
-			r := lipgloss.NewStyle().Foreground(m.s.Theme.Bg).Background(m.s.Theme.Bg).Render("")
-			rendered = l + style.Render(title) + r
+			// Inactive tabs should be clean text, not pills.
+			rendered = m.s.TabInactive.Render(title)
 		}
 
 		tabs = append(tabs, rendered)
@@ -1814,10 +1855,12 @@ func (m *Model) renderHeader() string {
 				indicatorTextW = 0
 			}
 
-			l := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
-			r := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
+			l := m.s.TagLeft.Foreground(m.s.Theme.Accent).Render()
+			r := m.s.TagRight.Foreground(m.s.Theme.Accent).Render()
 
-			indicatorCenter := m.s.TabActive.
+			indicatorCenter := lipgloss.NewStyle().
+				Foreground(m.s.Theme.Bg).
+				Background(m.s.Theme.Accent).
 				Width(indicatorTextW).
 				MaxHeight(1).
 				Align(lipgloss.Center).
@@ -1850,8 +1893,8 @@ func (m *Model) renderHeader() string {
 		Background(m.s.Theme.Accent).
 		Bold(true).
 		Padding(0, 1)
-	leftCap := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
-	rightCap := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
+	leftCap := m.s.TagLeft.Foreground(m.s.Theme.Accent).Render()
+	rightCap := m.s.TagRight.Foreground(m.s.Theme.Accent).Render()
 
 	count := fmt.Sprintf("%d tasks", len(m.tasks))
 	taskCountPill := leftCap + pillStyle.Render(count) + rightCap
@@ -1881,8 +1924,8 @@ func (m *Model) renderFooter() string {
 		Padding(0, 1)
 
 	// Unicode pill ends for circular appearance
-	leftCap := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
-	rightCap := lipgloss.NewStyle().Foreground(m.s.Theme.Accent).Background(m.s.Theme.Bg).Render("")
+	leftCap := m.s.TagLeft.Foreground(m.s.Theme.Accent).Render()
+	rightCap := m.s.TagRight.Foreground(m.s.Theme.Accent).Render()
 
 	// Separator between pills
 	sep := lipgloss.NewStyle().
@@ -1897,13 +1940,13 @@ func (m *Model) renderFooter() string {
 	// Critical prompts are always shown regardless of ShowHelp setting
 	switch m.mode {
 	case ModeConfirmDelete:
-		delLeft := lipgloss.NewStyle().Foreground(m.s.Theme.Bad).Background(m.s.Theme.Bg).Render("")
-		delRight := lipgloss.NewStyle().Foreground(m.s.Theme.Bad).Background(m.s.Theme.Bg).Render("")
+		delLeft := m.s.TagLeft.Foreground(m.s.Theme.Bad).Render()
+		delRight := m.s.TagRight.Foreground(m.s.Theme.Bad).Render()
 		delPill := delLeft + m.s.BadgeDelete.Render("DELETE?") + delRight
 		left = " " + delPill + " " + makePill("y/enter confirm") + sep + makePill("a delete all") + sep + makePill("n/esc cancel")
 	case ModeConfirmQuit:
-		quitLeft := lipgloss.NewStyle().Foreground(m.s.Theme.Warn).Background(m.s.Theme.Bg).Render("")
-		quitRight := lipgloss.NewStyle().Foreground(m.s.Theme.Warn).Background(m.s.Theme.Bg).Render("")
+		quitLeft := m.s.TagLeft.Foreground(m.s.Theme.Warn).Render()
+		quitRight := m.s.TagRight.Foreground(m.s.Theme.Warn).Render()
 		quitPill := quitLeft + m.s.BadgeQuit.Render("QUIT?") + quitRight
 		left = " " + quitPill + " " + makePill("y/enter confirm") + sep + makePill("n/esc cancel")
 	case ModeTagFilter:
@@ -2364,6 +2407,13 @@ func (m *Model) runCommand(id string) tea.Cmd {
 		return m.edit.Init()
 	case "cmd:theme":
 		m.mode = ModeThemeMenu
+		return nil
+	case "cmd:ai":
+		m.aiPanel.Toggle()
+		m.aiPanel.SetSize(m.width, m.height)
+		if m.aiPanel.Visible {
+			return m.aiPanel.Init()
+		}
 		return nil
 	case "cmd:view:inbox":
 		m.setActiveView(core.ViewInbox)

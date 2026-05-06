@@ -6,14 +6,12 @@
 
 **The terminal task manager for developers who live in their editor.**
 
-No browser tabs. No subscriptions. No mouse. Just your tasks — exactly where your brain already is.
+A premium, minimalist task manager designed for focus. Kairo strips away the noise, relying on structured whitespace and refined typography to keep you in your flow.
 
 <br/>
 
 [![Release](https://img.shields.io/github/v/release/programmersd21/kairo?style=for-the-badge&logo=github&color=7c3aed)](https://github.com/programmersd21/kairo/releases)
 [![CI](https://img.shields.io/github/actions/workflow/status/programmersd21/kairo/ci.yml?branch=main&style=for-the-badge&logo=github&color=2563eb)](https://github.com/programmersd21/kairo/actions)
-[![Go Report](https://img.shields.io/badge/go%20report-A%2B-brightgreen?style=for-the-badge&logo=go&logoColor=white)](https://goreportcard.com/report/github.com/programmersd21/kairo)
-[![Downloads](https://img.shields.io/github/downloads/programmersd21/kairo/total?style=for-the-badge&logo=github)](https://github.com/programmersd21/kairo/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 <br/>
@@ -26,14 +24,15 @@ No browser tabs. No subscriptions. No mouse. Just your tasks — exactly where y
 
 ## Why Kairo?
 
-Most task managers make you context-switch out of your flow. Kairo doesn't.
+Kairo is built on the philosophy of "Calm Tech." We focus on your data, not our UI.
 
-| Pain point | What Kairo does |
+| Premium Minimalist Feature | Benefit |
 |---|---|
-| GUI apps break your focus | Lives entirely in your terminal |
-| Cloud tools own your data | Everything local, stored in SQLite |
-| Plain-text tools lack structure | Full tagging, filtering, and fuzzy search |
-| Legacy TUIs feel dated | Modern, animated, keyboard-first UX |
+| **Momentum Dashboard** | Empty states are now data-rich, bordered modules. |
+| **White-Space-First UI** | No borders, no clutter — just content. |
+| **Monochrome Design** | Neutral core, semantic-only color highlights. |
+| **Typography Hierarchy** | Clear visual focus through font weight and scale. |
+| **Fluid Motion** | Sub-300ms transitions that feel "alive." |
 
 ---
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -251,24 +250,23 @@ func (m Model) View() string {
 		}
 
 		label := item.label
-		padding := cardW - lipgloss.Width(label) - lipgloss.Width(status) - 4
-		if padding < 0 {
-			padding = 0
-		}
+		// Simplified layout logic to be more resilient to minimalist style changes
+		line := style.Render(fmt.Sprintf(" %s", label))
+		status = lipgloss.NewStyle().PaddingLeft(2).Render(status)
 
-		line := style.Render(fmt.Sprintf(" %s%s%s ", label, strings.Repeat(" ", padding), status))
-		lines = append(lines, line)
+		fullLine := lipgloss.JoinHorizontal(lipgloss.Left, line, status)
+		lines = append(lines, fullLine)
 	}
 
-	hint := m.styles.Muted.Render("\n Tip: You can edit 'config.toml' for advanced options.")
-	footer := m.styles.Muted.Render(" esc/ctrl+s close • 'g' open config • 'r' reset • enter toggle • 'j' move down • 'k' move up")
-	lines = append(lines, hint, footer)
+	hint := m.styles.Muted.Render("\nTip: Edit 'config.toml' for advanced options.")
+	footer := m.styles.Muted.Render("esc/ctrl+s close • 'g' open config • 'r' reset • enter toggle")
+	lines = append(lines, "", hint, footer)
 
 	return lipgloss.Place(w, m.height, lipgloss.Center, lipgloss.Center,
 		m.styles.Overlay.Width(cardW).Padding(1, 2).Render(lipgloss.JoinVertical(lipgloss.Left, lines...)),
-		lipgloss.WithWhitespaceBackground(m.styles.Theme.Bg),
 	)
 }
+
 func min(a, b int) int {
 	if a < b {
 		return a

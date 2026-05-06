@@ -17,7 +17,8 @@ type StreamChunk struct {
 	Done    bool
 	Err     error
 	ToolUse *ToolUseEvent
-	Refresh bool // Signals the UI to reload data live
+	Refresh bool             // Signals the UI to reload data live
+	History []*genai.Content // Updated history to persist context
 }
 
 type AppContext struct {
@@ -60,19 +61,29 @@ func (c *Client) ChatStream(ctx context.Context, history []*genai.Content, userM
 			}
 		}()
 
-		systemPrompt := fmt.Sprintf(`You are Kairo Assistant, an expert productivity AI embedded in Kairo, a terminal-based task manager.
+		systemPrompt := fmt.Sprintf(`You are Kairo Assistant, an expert productivity AI.
 Current View: %s
 Context Data: %s
 
-You have TOTAL control over the user's tasks, projects, UI themes, and Lua plugins through tool calls. 
-You can:
-- Manage tasks (create, update, delete, list, tags, priority, status, deadline).
-- Recurring tasks: use 'recurrence' (none|weekly|monthly), 'recurrence_weekly' (e.g. ["mon", "wed"]), 'recurrence_monthly' (e.g. 15).
-- Change the UI theme (e.g. catppuccin, dracula, nord, midnight, etc.) using 'set_theme'.
-- Manage Lua plugins (list, read, write, delete) using 'plugin_*' actions.
-- Configure AI settings and export data.
+You have TOTAL control over tasks via the 'kairo_api' tool. 
 
-Be concise, direct, and action-oriented. Format output for a terminal: use plain text, avoid markdown headers, use simple bullet points (- ) only.`, appCtx.ViewName, appCtx.Data)
+SCHEMA FOR 'kairo_api' PAYLOAD:
+For 'create' and 'update' actions, the 'payload' must be a JSON object with these fields:
+- title (string, REQUIRED for create)
+- description (string)
+- tags (array of strings)
+- priority (int: 0=P0, 1=P1, 2=P2, 3=P3)
+- status (string: "todo", "doing", "done")
+- deadline (string: RFC3339 format)
+- wait_until (string: RFC3339 format)
+- until (string: RFC3339 format)
+- recurrence (string: "none", "weekly", "monthly")
+- recurrence_weekly (array of strings: e.g. ["mon", "wed"])
+- recurrence_monthly (int: 1-31)
+- parent_id (string: ID of parent task)
+- collapsed (bool)
+
+Follow this structure strictly for tool calls. Be concise, direct, and action-oriented. Format output for a terminal: plain text, bullet points only.`, appCtx.ViewName, appCtx.Data)
 
 		kairoTools := GetKairoTools()
 
@@ -149,7 +160,7 @@ Be concise, direct, and action-oriented. Format output for a terminal: use plain
 			}
 
 			if len(toolCalls) == 0 {
-				send(StreamChunk{Done: true})
+				send(StreamChunk{Done: true, History: history})
 				return
 			}
 

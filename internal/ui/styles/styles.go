@@ -2,7 +2,6 @@ package styles
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 
@@ -50,10 +49,11 @@ const (
 
 // Design System Constants
 const (
-	// Spacing (compact grid)
+	// Spacing (refined, airy grid)
 	Spacing0 = 0
 	Spacing1 = 1
 	Spacing2 = 2
+	Spacing4 = 4
 )
 
 type Styles struct {
@@ -83,20 +83,15 @@ type Styles struct {
 	RowNormal   lipgloss.Style
 	RowHovered  lipgloss.Style
 	RowDimmed   lipgloss.Style
-	RowFocused  lipgloss.Style
 
 	// Badges & Status
-	Badge             lipgloss.Style
-	BadgeGood         lipgloss.Style
-	BadgeWarn         lipgloss.Style
-	BadgeBad          lipgloss.Style
-	BadgeMuted        lipgloss.Style
-	BadgeDelete       lipgloss.Style
-	BadgeQuit         lipgloss.Style
-	BadgeOutlineGood  lipgloss.Style
-	BadgeOutlineWarn  lipgloss.Style
-	BadgeOutlineBad   lipgloss.Style
-	BadgeOutlineMuted lipgloss.Style
+	Badge       lipgloss.Style
+	BadgeGood   lipgloss.Style
+	BadgeWarn   lipgloss.Style
+	BadgeBad    lipgloss.Style
+	BadgeMuted  lipgloss.Style
+	BadgeDelete lipgloss.Style
+	BadgeQuit   lipgloss.Style
 
 	// Detail & Form
 	DetailKey   lipgloss.Style
@@ -108,21 +103,11 @@ type Styles struct {
 	FormLabel   lipgloss.Style
 
 	// Components
-	Card             lipgloss.Style
-	CardHeader       lipgloss.Style
-	CardContent      lipgloss.Style
-	CardFooter       lipgloss.Style
-	Overlay          lipgloss.Style
-	Input            lipgloss.Style
-	InputFocused     lipgloss.Style
-	InputPlaceholder lipgloss.Style
-	Button           lipgloss.Style
-	ButtonPrimary    lipgloss.Style
-	ButtonSecondary  lipgloss.Style
-	ButtonActive     lipgloss.Style
-	Divider          lipgloss.Style
-	Border           lipgloss.Style
-	SoftBorder       lipgloss.Style
+	Card        lipgloss.Style
+	Input       lipgloss.Style
+	InputActive lipgloss.Style
+	Overlay     lipgloss.Style
+	Divider     lipgloss.Style
 
 	// States
 	Empty   lipgloss.Style
@@ -133,217 +118,118 @@ type Styles struct {
 
 func New(t theme.Theme) Styles {
 	base := lipgloss.NewStyle().Foreground(t.Fg).Background(t.Bg)
-	accentStyle := lipgloss.NewStyle().Foreground(t.Accent).Background(t.Bg)
-	mutedStyle := lipgloss.NewStyle().Foreground(t.Muted).Background(t.Bg)
+	accent := lipgloss.NewStyle().Foreground(t.Accent).Background(t.Bg)
+	muted := lipgloss.NewStyle().Foreground(t.Muted).Background(t.Bg)
 
-	selection := lipgloss.NewStyle().
-		Foreground(t.Bg).
-		Background(t.Accent).
-		Bold(true)
-
-	// Contrast color for badge text
-	contrast := lipgloss.Color("#FFFFFF")
-	if t.IsLight {
-		contrast = t.Bg // Use theme background (usually light) for text on colored badges in light themes
-	}
+	// Minimalist accent bar for selection
+	selected := lipgloss.NewStyle().
+		Background(t.Overlay).
+		Foreground(t.Accent).
+		Bold(true).
+		PaddingLeft(Spacing2)
 
 	return Styles{
 		Theme: t,
 
-		// Base
 		App:    base,
-		Header: base.Padding(0, 1).Height(1),
-		Footer: base.Padding(0, 1).Height(1),
+		Header: base.Padding(0, Spacing2),
+		Footer: base.Padding(0, Spacing2),
 		Panel:  base,
 
-		// Typography
 		Title:    base.Bold(true).Foreground(t.Accent),
 		Subtitle: base.Bold(true).Foreground(t.Muted),
 		Bold:     base.Bold(true),
-		Muted:    mutedStyle,
+		Muted:    muted,
 		Text:     base,
-		Accent:   accentStyle,
+		Accent:   accent,
 
-		// Tabs & Navigation
-		TabActive: lipgloss.NewStyle().
-			Foreground(t.Bg).
-			Background(t.Accent).
-			Bold(true).
-			Padding(0, 1),
-		TabInactive: lipgloss.NewStyle().
-			Foreground(t.Muted).
-			Background(t.Bg).
-			Padding(0, 1),
-		Separator: mutedStyle.SetString("│"),
+		TabActive:   accent.Bold(true).Padding(0, Spacing1),
+		TabInactive: muted.Padding(0, Spacing1),
+		Separator:   muted.SetString("│"),
 
-		// Rows & List Items
-		RowSelected: selection,
-		RowNormal:   base,
-		RowHovered:  lipgloss.NewStyle().Foreground(t.Bg).Background(t.Accent),
-		RowDimmed:   mutedStyle,
-		RowFocused:  selection,
+		RowSelected: selected,
+		RowNormal:   base.PaddingLeft(Spacing2),
+		RowHovered:  base.PaddingLeft(Spacing2).Foreground(t.Accent),
+		RowDimmed:   muted.PaddingLeft(Spacing2),
 
-		// Badges - Compact
-		Badge: lipgloss.NewStyle().
-			Foreground(t.Muted).
-			Background(t.Bg),
-		BadgeGood: lipgloss.NewStyle().
-			Foreground(t.Good).
-			Background(t.Bg),
-		BadgeWarn: lipgloss.NewStyle().
-			Foreground(t.Warn).
-			Background(t.Bg),
-		BadgeBad: lipgloss.NewStyle().
-			Foreground(t.Bad).
-			Background(t.Bg),
-		BadgeMuted: lipgloss.NewStyle().
-			Foreground(t.Muted).
-			Background(t.Bg),
-		BadgeDelete: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Bad).
-			Bold(true).
-			Padding(0, 1),
-		BadgeQuit: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Warn).
-			Bold(true).
-			Padding(0, 1),
-		BadgeOutlineGood: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Good).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(t.Good).
-			BorderTop(false).
-			BorderBottom(false).
-			Bold(true).
-			Padding(0, 1),
-		BadgeOutlineWarn: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Warn).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(t.Warn).
-			BorderTop(false).
-			BorderBottom(false).
-			Bold(true).
-			Padding(0, 1),
-		BadgeOutlineBad: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Bad).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(t.Bad).
-			BorderTop(false).
-			BorderBottom(false).
-			Bold(true).
-			Padding(0, 1),
-		BadgeOutlineMuted: lipgloss.NewStyle().
-			Foreground(contrast).
-			Background(t.Muted).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(t.Muted).
-			BorderTop(false).
-			BorderBottom(false).
-			Bold(true).
-			Padding(0, 1),
+		Badge:       muted,
+		BadgeGood:   lipgloss.NewStyle().Foreground(t.Good),
+		BadgeWarn:   lipgloss.NewStyle().Foreground(t.Warn),
+		BadgeBad:    lipgloss.NewStyle().Foreground(t.Bad),
+		BadgeMuted:  muted,
+		BadgeDelete: lipgloss.NewStyle().Foreground(t.Bg).Background(t.Bad).Padding(0, Spacing1),
+		BadgeQuit:   lipgloss.NewStyle().Foreground(t.Bg).Background(t.Warn).Padding(0, Spacing1),
 
-		// Detail & Form
-		DetailKey: mutedStyle.
-			Bold(true).
-			Width(12).
-			MarginRight(1),
+		DetailKey:   muted.Width(12).MarginRight(Spacing1),
 		DetailValue: base,
-		DetailLabel: mutedStyle.Bold(true),
-		Tag: lipgloss.NewStyle().
-			Foreground(t.Bg).
-			Background(t.Accent).
-			Padding(0, 1).
-			Bold(true),
-		TagLeft:   lipgloss.NewStyle().Foreground(t.Accent).Background(t.Bg).SetString(""),
-		TagRight:  lipgloss.NewStyle().Foreground(t.Accent).Background(t.Bg).SetString(""),
-		FormLabel: mutedStyle.Bold(true),
+		DetailLabel: muted.Bold(true),
+		Tag:         accent.Padding(0, Spacing1),
+		TagLeft:     accent.SetString(""),
+		TagRight:    accent.SetString(""),
+		FormLabel:   muted.Bold(true),
 
-		// Components
-		Card: lipgloss.NewStyle().
-			Background(t.Bg).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(t.Border).
-			Padding(0, 1),
-		CardHeader:  accentStyle.Bold(true),
-		CardContent: base,
-		CardFooter:  mutedStyle,
-		Overlay: lipgloss.NewStyle().
-			Background(t.Bg).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(t.Accent).
-			Padding(0, 1),
-		Input: lipgloss.NewStyle().
-			Background(t.Overlay).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(t.Border),
-		InputFocused: lipgloss.NewStyle().
-			Background(t.Overlay).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(t.Accent),
-		InputPlaceholder: mutedStyle,
-		Button:           lipgloss.NewStyle().Padding(0, 1).Foreground(t.Muted),
-		ButtonPrimary:    lipgloss.NewStyle().Padding(0, 1).Foreground(t.Accent).Bold(true),
-		ButtonSecondary:  lipgloss.NewStyle().Padding(0, 1).Foreground(t.Muted),
-		ButtonActive:     lipgloss.NewStyle().Padding(0, 1).Foreground(t.Accent).Bold(true),
-		Divider:          mutedStyle.SetString(strings.Repeat("\u2500", 80)),
-		Border:           lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(t.Border),
-		SoftBorder:       lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).BorderForeground(t.Muted),
+		Card:        base.Padding(Spacing1, Spacing2),
+		Input:       base.Padding(0, Spacing1).Border(lipgloss.NormalBorder(), false, false, true, false).BorderForeground(t.Muted),
+		InputActive: base.Padding(0, Spacing1).Border(lipgloss.NormalBorder(), false, false, true, false).BorderForeground(t.Accent),
+		Overlay:     base.BorderStyle(lipgloss.RoundedBorder()).BorderForeground(t.Accent).Padding(Spacing1, Spacing2),
+		Divider:     muted.SetString("─"),
 
-		// States
-		Empty:   mutedStyle.Italic(true),
-		Loading: accentStyle,
+		Empty:   muted.Italic(true),
+		Loading: accent,
 		Error:   lipgloss.NewStyle().Foreground(t.Bad),
 		Success: lipgloss.NewStyle().Foreground(t.Good),
 	}
 }
 
 func (s Styles) StatusBadge(st core.Status) string {
+	var style lipgloss.Style
+	var text string
+
 	switch st {
 	case core.StatusTodo:
-		return s.BadgeMuted.Render(IconTodo + "TODO")
+		style = s.BadgeMuted.Background(s.Theme.Muted).Foreground(s.Theme.Bg)
+		text = IconTodo + "TODO"
 	case core.StatusDoing:
-		return s.BadgeWarn.Render(IconDoing + "DOING")
+		style = s.BadgeWarn.Background(s.Theme.Warn).Foreground(s.Theme.Bg)
+		text = IconDoing + "DOING"
 	case core.StatusDone:
-		return s.BadgeGood.Render(IconDone + "DONE")
+		style = s.BadgeGood.Background(s.Theme.Good).Foreground(s.Theme.Bg)
+		text = IconDone + "DONE"
 	default:
-		return s.BadgeMuted.Render(string(st))
+		style = s.BadgeMuted
+		text = string(st)
 	}
+
+	return style.Padding(0, Spacing1).Render(text)
 }
 
 func (s Styles) PriorityBadge(p core.Priority) string {
 	var style lipgloss.Style
 	var text string
-	var bg lipgloss.Color
 
 	switch p.Clamp() {
 	case core.P0:
-		style = s.BadgeOutlineMuted
+		style = s.BadgeMuted.Background(s.Theme.Muted).Foreground(s.Theme.Bg)
 		text = IconPriority0 + "P0"
-		bg = s.Theme.Muted
 	case core.P1:
-		style = s.BadgeOutlineMuted
+		style = s.BadgeMuted.Background(s.Theme.Muted).Foreground(s.Theme.Bg)
 		text = IconPriority1 + "P1"
-		bg = s.Theme.Muted
 	case core.P2:
-		style = s.BadgeOutlineWarn
+		style = s.BadgeWarn.Background(s.Theme.Warn).Foreground(s.Theme.Bg)
 		text = IconPriority2 + "P2"
-		bg = s.Theme.Warn
 	case core.P3:
-		style = s.BadgeOutlineBad
+		style = s.BadgeBad.Background(s.Theme.Bad).Foreground(s.Theme.Bg)
 		text = IconPriority3 + "P3"
-		bg = s.Theme.Bad
 	default:
-		style = s.BadgeOutlineMuted
+		style = s.BadgeMuted
 		text = fmt.Sprintf("P%d", int(p))
-		bg = s.Theme.Muted
 	}
 
-	style = style.BorderStyle(lipgloss.HiddenBorder())
-	leftCap := lipgloss.NewStyle().Foreground(bg).Background(s.Theme.Bg).Render("")
-	rightCap := lipgloss.NewStyle().Foreground(bg).Background(s.Theme.Bg).Render("")
-	return leftCap + style.Render(text) + rightCap
+	pill := lipgloss.JoinHorizontal(lipgloss.Left,
+		s.TagLeft.Foreground(style.GetBackground()).Render(),
+		style.Render(text),
+		s.TagRight.Foreground(style.GetBackground()).Render(),
+	)
+
+	return pill
 }
