@@ -1,13 +1,37 @@
 [app]
+# theme name (built-in) or a plugin-provided theme id
 theme = "catppuccin"
+
+# enable vim-style navigation bindings in the UI
 vim_mode = false
+
+# show the help footer at the bottom of the screen
 show_help = true
+
+# show task ids in the detail view
 show_id = true
+
+# animate the rainbow logo (purely cosmetic)
 rainbow = false
+
+# enable/disable UI animations (create/complete/delete transitions, etc.)
 animations = true
+
+# Optional: AI assistant
+# gemini_api_key = ""
+ai_model = "gemini-3.1-flash-lite-preview"
+
+# Optional: MCP server (for tool integrations)
 mcp_enabled = false
 mcp_port = "8080"
-ai_model = "gemini-3.1-flash-lite-preview"
+
+# internal flag used by onboarding flow
+onboarding_completed = false
+
+[list.order]
+# Controls the order of fields rendered on the right side of each task row.
+# Valid values: "tags", "due", "priority"
+right = ["tags", "due", "priority"]
 
 [theme]
 # Any field set here overrides the built-in theme colors.
@@ -22,38 +46,55 @@ ai_model = "gemini-3.1-flash-lite-preview"
 # overlay = "#101722"
 
 [storage]
-path = "" # empty = default app data dir
+# empty = default app data dir
+path = "kairo.db"
 
 [sync]
 enabled = false
-repo_path = ""   # folder containing a git repo (or where it will be initialized)
+
+# folder containing a git repo (or where it will be initialized)
+repo_path = "tasks-sync"
+
 remote = "origin"
 branch = "main"
-strategy = "ours" # ours|theirs
+
+# ours|theirs
+strategy = "ours"
+
 auto_push = true
 
 [plugins]
 enabled = true
-dir = "" # empty = default plugins dir
+
+# empty = default plugins dir
+dir = "plugins"
 
 [keymap]
 palette = "ctrl+p"
+task_search = "/"
+
 new_task = "n"
 edit_task = "e"
 delete_task = "d"
 open_task = "enter"
+
 back = "esc"
 quit = "q"
+
 view_inbox = "1"
 view_today = "2"
 view_upcoming = "3"
 view_completed = "4"
 view_tag = "f"
 view_priority = "5"
+
 cycle_theme = "t"
 manage_plugins = "p"
 open_plugin_dir = "ctrl+g"
+
 toggle_strike = "z"
+toggle_collapse = "space"
+
 help = "?"
 issues = "i"
 discussions = "u"
@@ -61,3 +102,5 @@ changelog = "c"
 settings = "ctrl+s"
 import_export = "x"
 ai_panel_toggle = "ctrl+a"
+stats = "s"
+

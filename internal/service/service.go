@@ -135,14 +135,29 @@ func (s *taskService) Update(ctx context.Context, id string, patch core.TaskPatc
 
 	// Recurrence logic: if marked done and is recurring, create next instance
 	if patch.Status != nil && *patch.Status == core.StatusDone && updated.Recurrence != core.RecurrenceNone {
+		now := time.Now()
+
+		// If the task is gated by wait_until and it hasn't passed yet, do not
+		// create/show recurring instances.
+		if updated.WaitUntil != nil && now.Before(*updated.WaitUntil) {
+			s.hooks.TaskUpdated(updated, patch)
+			return updated, nil
+		}
+
 		// Use deadline as reference if available, else now
-		ref := time.Now()
+		ref := now
 		if updated.Deadline != nil {
 			ref = *updated.Deadline
 		}
 
 		nextDue := updated.NextOccurrence(ref)
 		if nextDue != nil {
+			// If until is set, stop generating occurrences after that instant.
+			if updated.Until != nil && nextDue.After(*updated.Until) {
+				s.hooks.TaskUpdated(updated, patch)
+				return updated, nil
+			}
+
 			nextTask := updated
 			nextTask.ID = "" // New ID
 			nextTask.Status = core.StatusTodo

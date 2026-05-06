@@ -69,6 +69,8 @@ type Task struct {
 	Tags              []string
 	Priority          Priority
 	Deadline          *time.Time
+	WaitUntil         *time.Time
+	Until             *time.Time
 	Status            Status
 	Recurrence        RecurrenceType
 	RecurrenceWeekly  []string
@@ -79,6 +81,8 @@ type Task struct {
 	UpdatedAt         time.Time
 	CompletedAt       *time.Time
 }
+
+// ... update MarshalJSON/UnmarshalJSON accordingly ...
 
 func (t Task) NormalizedTags() []string {
 	m := make(map[string]struct{}, len(t.Tags))
@@ -139,6 +143,8 @@ type TaskPatch struct {
 	Tags              *[]string
 	Priority          *Priority
 	Deadline          **time.Time
+	WaitUntil         **time.Time
+	Until             **time.Time
 	Status            *Status
 	Recurrence        *RecurrenceType
 	RecurrenceWeekly  *[]string
@@ -163,6 +169,12 @@ func (p TaskPatch) ApplyTo(t Task) Task {
 	}
 	if p.Deadline != nil {
 		t.Deadline = *p.Deadline
+	}
+	if p.WaitUntil != nil {
+		t.WaitUntil = *p.WaitUntil
+	}
+	if p.Until != nil {
+		t.Until = *p.Until
 	}
 	if p.Status != nil {
 		t.Status = *p.Status
@@ -196,6 +208,8 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		Tags              []string  `json:"tags,omitempty"`
 		Priority          int       `json:"priority"`
 		Deadline          *string   `json:"deadline,omitempty"`
+		WaitUntil         *string   `json:"wait_until,omitempty"`
+		Until             *string   `json:"until,omitempty"`
 		Status            Status    `json:"status"`
 		Recurrence        string    `json:"recurrence,omitempty"`
 		RecurrenceWeekly  []string  `json:"recurrence_weekly,omitempty"`
@@ -211,6 +225,16 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		s := t.Deadline.UTC().Format(time.RFC3339Nano)
 		d = &s
 	}
+	var wu *string
+	if t.WaitUntil != nil {
+		s := t.WaitUntil.UTC().Format(time.RFC3339Nano)
+		wu = &s
+	}
+	var u *string
+	if t.Until != nil {
+		s := t.Until.UTC().Format(time.RFC3339Nano)
+		u = &s
+	}
 	var c *string
 	if t.CompletedAt != nil {
 		s := t.CompletedAt.UTC().Format(time.RFC3339Nano)
@@ -223,6 +247,8 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		Tags:              t.NormalizedTags(),
 		Priority:          int(t.Priority.Clamp()),
 		Deadline:          d,
+		WaitUntil:         wu,
+		Until:             u,
 		Status:            t.Status,
 		Recurrence:        string(t.Recurrence),
 		RecurrenceWeekly:  t.RecurrenceWeekly,
@@ -233,4 +259,73 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		UpdatedAt:         t.UpdatedAt.UTC(),
 		CompletedAt:       c,
 	})
+}
+
+func (t *Task) UnmarshalJSON(data []byte) error {
+	type wire struct {
+		ID                string    `json:"id"`
+		Title             string    `json:"title"`
+		Description       string    `json:"description,omitempty"`
+		Tags              []string  `json:"tags,omitempty"`
+		Priority          int       `json:"priority"`
+		Deadline          *string   `json:"deadline,omitempty"`
+		WaitUntil         *string   `json:"wait_until,omitempty"`
+		Until             *string   `json:"until,omitempty"`
+		Status            Status    `json:"status"`
+		Recurrence        string    `json:"recurrence,omitempty"`
+		RecurrenceWeekly  []string  `json:"recurrence_weekly,omitempty"`
+		RecurrenceMonthly int       `json:"recurrence_monthly,omitempty"`
+		ParentID          string    `json:"parent_id,omitempty"`
+		Collapsed         bool      `json:"collapsed,omitempty"`
+		CreatedAt         time.Time `json:"created_at"`
+		UpdatedAt         time.Time `json:"updated_at"`
+		CompletedAt       *string   `json:"completed_at,omitempty"`
+	}
+	var w wire
+	if err := json.Unmarshal(data, &w); err != nil {
+		return err
+	}
+	t.ID = w.ID
+	t.Title = w.Title
+	t.Description = w.Description
+	t.Tags = w.Tags
+	t.Priority = Priority(w.Priority).Clamp()
+	t.Status = w.Status
+	t.Recurrence = RecurrenceType(w.Recurrence)
+	t.RecurrenceWeekly = w.RecurrenceWeekly
+	t.RecurrenceMonthly = w.RecurrenceMonthly
+	t.ParentID = w.ParentID
+	t.Collapsed = w.Collapsed
+	t.CreatedAt = w.CreatedAt
+	t.UpdatedAt = w.UpdatedAt
+
+	if w.Deadline != nil {
+		dt, err := time.Parse(time.RFC3339Nano, *w.Deadline)
+		if err != nil {
+			return err
+		}
+		t.Deadline = &dt
+	}
+	if w.WaitUntil != nil {
+		dt, err := time.Parse(time.RFC3339Nano, *w.WaitUntil)
+		if err != nil {
+			return err
+		}
+		t.WaitUntil = &dt
+	}
+	if w.Until != nil {
+		dt, err := time.Parse(time.RFC3339Nano, *w.Until)
+		if err != nil {
+			return err
+		}
+		t.Until = &dt
+	}
+	if w.CompletedAt != nil {
+		ct, err := time.Parse(time.RFC3339Nano, *w.CompletedAt)
+		if err != nil {
+			return err
+		}
+		t.CompletedAt = &ct
+	}
+	return nil
 }

@@ -14,11 +14,27 @@ func (t Task) NextOccurrence(after time.Time) *time.Time {
 		return nil
 	}
 
+	// Recurrence gating: do not generate/show instances until wait_until has passed.
+	if t.WaitUntil != nil && after.Before(*t.WaitUntil) {
+		return nil
+	}
+
+	// Recurrence cap: stop generating instances after until.
+	withinUntil := func(next *time.Time) *time.Time {
+		if next == nil || t.Until == nil {
+			return next
+		}
+		if next.After(*t.Until) {
+			return nil
+		}
+		return next
+	}
+
 	switch t.Recurrence {
 	case RecurrenceWeekly:
-		return t.nextWeekly(after)
+		return withinUntil(t.nextWeekly(after))
 	case RecurrenceMonthly:
-		return t.nextMonthly(after)
+		return withinUntil(t.nextMonthly(after))
 	default:
 		return nil
 	}

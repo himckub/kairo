@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -40,14 +41,16 @@ type Model struct {
 
 	orig core.Task
 
-	title    textinput.Model
-	tags     textinput.Model
-	priority textinput.Model
-	deadline textinput.Model
-	status   textinput.Model
-	recur    textinput.Model
-	parentID textinput.Model
-	desc     textarea.Model
+	title     textinput.Model
+	tags      textinput.Model
+	priority  textinput.Model
+	deadline  textinput.Model
+	waitUntil textinput.Model
+	status    textinput.Model
+	recur     textinput.Model
+	until     textinput.Model
+	parentID  textinput.Model
+	desc      textarea.Model
 
 	focus int
 
@@ -55,50 +58,80 @@ type Model struct {
 	deadlineValue   *time.Time
 	deadlineErr     string
 
+	waitUntilPreview string
+	waitUntilValue   *time.Time
+	waitUntilErr     string
+
 	recurPreview string
 	recurErr     string
+
+	untilPreview string
+	untilValue   *time.Time
+	untilErr     string
 
 	showPreview bool
 	renderer    *glamour.TermRenderer
 }
 
 func New(s styles.Styles, mode Mode, t core.Task) Model {
+	applyFieldStyles := func(in *textinput.Model) {
+		// Keep labels fully highlighted even when the field is not focused.
+		in.PromptStyle = s.Accent.Bold(true)
+		in.TextStyle = s.Text
+
+		// Hide the cursor to avoid rendering artifacts, as we use background
+		// highlighting for focus indication.
+		in.Cursor.SetMode(cursor.CursorHide)
+	}
 	ti := textinput.New()
-	ti.Prompt = styles.IconTask + "Title: "
+	ti.Prompt = ""
 	ti.CharLimit = 200
 	ti.SetValue(strings.TrimSpace(t.Title))
 	ti.Focus()
+	applyFieldStyles(&ti)
 
 	tags := textinput.New()
-	tags.Prompt = styles.IconTag + "Tags:  "
+	tags.Prompt = ""
 	tags.CharLimit = 200
 	if len(t.Tags) > 0 {
 		tags.SetValue("#" + strings.Join(t.Tags, " #"))
 	}
+	applyFieldStyles(&tags)
 
 	pr := textinput.New()
-	pr.Prompt = styles.IconPriority1 + "Pri:   "
+	pr.Prompt = ""
 	pr.CharLimit = 2
 	pr.SetValue(fmt.Sprintf("%d", int(t.Priority.Clamp())))
+	applyFieldStyles(&pr)
 
 	dl := textinput.New()
-	dl.Prompt = styles.IconDeadline + "Due:   "
+	dl.Prompt = ""
 	dl.CharLimit = 64
 	if t.Deadline != nil {
 		dl.SetValue(t.Deadline.Local().Format("2006-01-02 15:04"))
 	}
+	applyFieldStyles(&dl)
+
+	wu := textinput.New()
+	wu.Prompt = ""
+	wu.CharLimit = 64
+	if t.WaitUntil != nil {
+		wu.SetValue(t.WaitUntil.Local().Format("2006-01-02 15:04"))
+	}
+	applyFieldStyles(&wu)
 
 	st := textinput.New()
-	st.Prompt = styles.IconDoing + "Status:"
+	st.Prompt = ""
 	st.CharLimit = 16
 	if t.Status == "" {
 		st.SetValue(string(core.StatusTodo))
 	} else {
 		st.SetValue(string(t.Status))
 	}
+	applyFieldStyles(&st)
 
 	re := textinput.New()
-	re.Prompt = "󰑖 Recur: "
+	re.Prompt = ""
 	re.CharLimit = 64
 	switch t.Recurrence {
 	case core.RecurrenceWeekly:
@@ -106,11 +139,21 @@ func New(s styles.Styles, mode Mode, t core.Task) Model {
 	case core.RecurrenceMonthly:
 		re.SetValue(fmt.Sprintf("%d", t.RecurrenceMonthly))
 	}
+	applyFieldStyles(&re)
+
+	un := textinput.New()
+	un.Prompt = ""
+	un.CharLimit = 64
+	if t.Until != nil {
+		un.SetValue(t.Until.Local().Format("2006-01-02 15:04"))
+	}
+	applyFieldStyles(&un)
 
 	pid := textinput.New()
-	pid.Prompt = "󱗼 Parent:"
+	pid.Prompt = ""
 	pid.CharLimit = 64
 	pid.SetValue(t.ParentID)
+	applyFieldStyles(&pid)
 
 	d := textarea.New()
 	d.Placeholder = "Description (Markdown)…"
@@ -127,15 +170,19 @@ func New(s styles.Styles, mode Mode, t core.Task) Model {
 		tags:        tags,
 		priority:    pr,
 		deadline:    dl,
+		waitUntil:   wu,
 		status:      st,
 		recur:       re,
+		until:       un,
 		parentID:    pid,
 		desc:        d,
 		focus:       0,
 		showPreview: true,
 	}
 	m.recomputeDeadline()
+	m.recomputeWaitUntil()
 	m.recomputeRecurrence()
+	m.recomputeUntil()
 	return m
 }
 
@@ -158,8 +205,11 @@ func (m *Model) SetSize(w, h int) {
 	m.tags.Width = max(20, editorW-20)
 	m.priority.Width = 6
 	m.deadline.Width = max(20, editorW-20)
+	m.waitUntil.Width = max(20, editorW-20)
 	m.status.Width = 10
 	m.recur.Width = max(20, editorW-20)
+	m.until.Width = max(20, editorW-20)
+	m.parentID.Width = max(20, editorW-20)
 
 	// Recreate renderer with new width
 	style := "dark"
@@ -179,7 +229,7 @@ func (m *Model) SetSize(w, h int) {
 	m.renderer = r
 }
 
-func (m Model) Init() tea.Cmd { return textinput.Blink }
+func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch x := msg.(type) {
@@ -189,14 +239,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, func() tea.Msg { return CloseMsg{} }
 		case "tab":
 			m.blurAll()
-			m.focus = (m.focus + 1) % 8
+			m.focus = (m.focus + 1) % 10
 			m.focusField()
 			return m, nil
 		case "shift+tab":
 			m.blurAll()
 			m.focus--
 			if m.focus < 0 {
-				m.focus = 7
+				m.focus = 9
 			}
 			m.focusField()
 			return m, nil
@@ -226,14 +276,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.recomputeDeadline()
 		}
 	case 5:
+		prev := m.waitUntil.Value()
+		m.waitUntil, cmd = m.waitUntil.Update(msg)
+		if m.waitUntil.Value() != prev {
+			m.recomputeWaitUntil()
+		}
+	case 6:
 		prev := m.recur.Value()
 		m.recur, cmd = m.recur.Update(msg)
 		if m.recur.Value() != prev {
 			m.recomputeRecurrence()
 		}
-	case 6:
-		m.parentID, cmd = m.parentID.Update(msg)
 	case 7:
+		prev := m.until.Value()
+		m.until, cmd = m.until.Update(msg)
+		if m.until.Value() != prev {
+			m.recomputeUntil()
+		}
+	case 8:
+		m.parentID, cmd = m.parentID.Update(msg)
+	case 9:
 		m.desc, cmd = m.desc.Update(msg)
 	}
 	return m, cmd
@@ -257,15 +319,30 @@ func (m Model) View() string {
 	}
 	header := m.styles.Title.Padding(0, 1).MarginBottom(1).Render(titleText)
 
+	// Helper for rendering structured fields
+	renderField := func(icon, label string, input string, focused bool) string {
+		s := lipgloss.NewStyle().Padding(0, 1)
+
+		// Style prompt icon and label based on focus
+		promptStyle := m.styles.Muted
+		if focused {
+			promptStyle = promptStyle.Foreground(m.styles.Theme.Accent).Bold(true)
+			input = lipgloss.NewStyle().Background(m.styles.Theme.Border).Render(input)
+		}
+
+		prompt := lipgloss.JoinHorizontal(lipgloss.Left, icon, label)
+		return s.Render(lipgloss.JoinHorizontal(lipgloss.Left, promptStyle.Width(14).Render(prompt), input))
+	}
+
 	fields := []string{
 		header,
-		m.renderField("Title", m.title.View(), m.focus == 0),
-		m.renderField("Tags", m.tags.View(), m.focus == 1),
+		renderField(styles.IconTask, "Title:", m.title.View(), m.focus == 0),
+		renderField(styles.IconTag, "Tags:", m.tags.View(), m.focus == 1),
 		lipgloss.JoinHorizontal(lipgloss.Left,
-			m.renderField("Pri", m.priority.View(), m.focus == 2),
-			m.renderField("Status", m.status.View(), m.focus == 3),
+			renderField(styles.IconPriority1, "Pri:", m.priority.View(), m.focus == 2),
+			renderField(styles.IconDoing, "Status:", m.status.View(), m.focus == 3),
 		),
-		m.renderField("Due", m.deadline.View(), m.focus == 4),
+		renderField(styles.IconDeadline, "Due:", m.deadline.View(), m.focus == 4),
 	}
 
 	if m.deadlineErr != "" {
@@ -274,7 +351,14 @@ func (m Model) View() string {
 		fields = append(fields, m.styles.Muted.Padding(0, 2).Render(m.deadlinePreview))
 	}
 
-	fields = append(fields, m.renderField("Recur", m.recur.View(), m.focus == 5))
+	fields = append(fields, renderField(styles.IconWaitUntil, "Wait Until:", m.waitUntil.View(), m.focus == 5))
+	if m.waitUntilErr != "" {
+		fields = append(fields, m.styles.Error.Padding(0, 2).Render(m.waitUntilErr))
+	} else if m.waitUntilPreview != "" {
+		fields = append(fields, m.styles.Muted.Padding(0, 2).Render(m.waitUntilPreview))
+	}
+
+	fields = append(fields, renderField("󰑖 ", "Recur:", m.recur.View(), m.focus == 6))
 	if m.recurErr != "" {
 		fields = append(fields, m.styles.Error.Padding(0, 2).Render(m.recurErr))
 	} else if m.recurPreview != "" {
@@ -283,10 +367,17 @@ func (m Model) View() string {
 		fields = append(fields, m.styles.Muted.Padding(0, 2).Render("e.g. mon,wed or 15"))
 	}
 
-	fields = append(fields, m.renderField("Parent", m.parentID.View(), m.focus == 6))
+	fields = append(fields, renderField(styles.IconUntil, "Until:", m.until.View(), m.focus == 7))
+	if m.untilErr != "" {
+		fields = append(fields, m.styles.Error.Padding(0, 2).Render(m.untilErr))
+	} else if m.untilPreview != "" {
+		fields = append(fields, m.styles.Muted.Padding(0, 2).Render(m.untilPreview))
+	}
+
+	fields = append(fields, renderField("󱗼 ", "Parent:", m.parentID.View(), m.focus == 8))
 
 	descView := m.desc.View()
-	fields = append(fields, "", lipgloss.NewStyle().Padding(0, 2).Render(descView))
+	fields = append(fields, lipgloss.NewStyle().Padding(0, 2).Render(descView))
 
 	editorContent := lipgloss.JoinVertical(lipgloss.Left, fields...)
 
@@ -323,24 +414,15 @@ func (m Model) View() string {
 	)
 }
 
-func (m Model) renderField(label, input string, focused bool) string {
-	labelStyle := m.styles.Muted.Width(8)
-	if focused {
-		labelStyle = labelStyle.Foreground(m.styles.Theme.Accent)
-	}
-
-	return lipgloss.NewStyle().Padding(0, 1).Render(
-		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render(label), input),
-	)
-}
-
 func (m *Model) blurAll() {
 	m.title.Blur()
 	m.tags.Blur()
 	m.priority.Blur()
 	m.deadline.Blur()
+	m.waitUntil.Blur()
 	m.status.Blur()
 	m.recur.Blur()
+	m.until.Blur()
 	m.parentID.Blur()
 	m.desc.Blur()
 }
@@ -358,10 +440,14 @@ func (m *Model) focusField() {
 	case 4:
 		m.deadline.Focus()
 	case 5:
-		m.recur.Focus()
+		m.waitUntil.Focus()
 	case 6:
-		m.parentID.Focus()
+		m.recur.Focus()
 	case 7:
+		m.until.Focus()
+	case 8:
+		m.parentID.Focus()
+	case 9:
 		m.desc.Focus()
 	}
 }
@@ -385,6 +471,28 @@ func (m *Model) recomputeDeadline() {
 	m.deadlineValue = t
 	m.deadlinePreview = t.Local().Format("Mon Jan 2 15:04")
 	// If deadline changes, recurrence preview might change too
+	m.recomputeRecurrence()
+}
+
+func (m *Model) recomputeWaitUntil() {
+	m.waitUntilErr = ""
+	m.waitUntilPreview = ""
+	m.waitUntilValue = nil
+	raw := strings.TrimSpace(m.waitUntil.Value())
+	if raw == "" {
+		return
+	}
+	t, err := nlp.ParseDeadline(raw, time.Now())
+	if err != nil {
+		m.waitUntilErr = err.Error()
+		return
+	}
+	if t == nil {
+		return
+	}
+	m.waitUntilValue = t
+	m.waitUntilPreview = t.Local().Format("Mon Jan 2 15:04")
+	// If wait-until changes, recurrence preview might change too
 	m.recomputeRecurrence()
 }
 
@@ -417,12 +525,36 @@ func (m *Model) recomputeRecurrence() {
 		RecurrenceWeekly:  weekly,
 		RecurrenceMonthly: monthly,
 		Deadline:          m.deadlineValue,
+		WaitUntil:         m.waitUntilValue,
+		Until:             m.untilValue,
 	}
 
 	next := task.NextOccurrence(ref)
 	if next != nil {
 		m.recurPreview = "Next: " + next.Local().Format("Mon Jan 2 15:04")
 	}
+}
+
+func (m *Model) recomputeUntil() {
+	m.untilErr = ""
+	m.untilPreview = ""
+	m.untilValue = nil
+	raw := strings.TrimSpace(m.until.Value())
+	if raw == "" {
+		return
+	}
+	t, err := nlp.ParseDeadline(raw, time.Now())
+	if err != nil {
+		m.untilErr = err.Error()
+		return
+	}
+	if t == nil {
+		return
+	}
+	m.untilValue = t
+	m.untilPreview = t.Local().Format("Mon Jan 2 15:04")
+	// If until changes, recurrence preview might change too
+	m.recomputeRecurrence()
 }
 
 func (m Model) saveCmd() tea.Cmd {
@@ -443,6 +575,18 @@ func (m Model) saveCmd() tea.Cmd {
 		deadline = &d
 	}
 
+	var waitUntil *time.Time
+	if m.waitUntilValue != nil {
+		d := (*m.waitUntilValue).UTC()
+		waitUntil = &d
+	}
+
+	var until *time.Time
+	if m.untilValue != nil {
+		d := (*m.untilValue).UTC()
+		until = &d
+	}
+
 	recType, weekly, monthly, err := core.ParseRecurrence(m.recur.Value())
 	if err != nil {
 		m.recurErr = err.Error()
@@ -456,6 +600,8 @@ func (m Model) saveCmd() tea.Cmd {
 			Tags:              tags,
 			Priority:          pri,
 			Deadline:          deadline,
+			WaitUntil:         waitUntil,
+			Until:             until,
 			Status:            st,
 			Recurrence:        recType,
 			RecurrenceWeekly:  weekly,
@@ -483,6 +629,14 @@ func (m Model) saveCmd() tea.Cmd {
 	if (deadline == nil) != (m.orig.Deadline == nil) || (deadline != nil && m.orig.Deadline != nil && !deadline.Equal(*m.orig.Deadline)) {
 		d := deadline
 		patch.Deadline = &d
+	}
+	if (waitUntil == nil) != (m.orig.WaitUntil == nil) || (waitUntil != nil && m.orig.WaitUntil != nil && !waitUntil.Equal(*m.orig.WaitUntil)) {
+		wu := waitUntil
+		patch.WaitUntil = &wu
+	}
+	if (until == nil) != (m.orig.Until == nil) || (until != nil && m.orig.Until != nil && !until.Equal(*m.orig.Until)) {
+		u := until
+		patch.Until = &u
 	}
 	if st != m.orig.Status {
 		patch.Status = &st

@@ -240,6 +240,7 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 		RainbowAnimationOffset: 0,
 	}
 	m.list = tasklist.New(m.s, cfg.App.VimMode, cfg.App.Animations, m.km)
+	m.list.SetRightOrder(cfg.List.Order.Right)
 	m.pal = palette.New(m.s)
 	m.det = detail.New(m.s)
 	m.hlp = help.New(m.s, m.km)
@@ -316,6 +317,11 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 				}
 			})
 			_ = m.plugHost.LoadAll()
+
+			// Now that plugins are loaded (and have had a chance to register hooks),
+			// emit app_start so startup automation (like cleanup plugins) runs
+			// in the same session (no restart required).
+			m.svc.Hooks().AppStarted()
 
 			// If the configured theme is a plugin theme, apply it now that plugins are loaded
 			for _, pt := range m.plugHost.Themes() {
@@ -774,7 +780,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case taskDeletedMsg:
-		return m, tea.Batch(m.loadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
+		// Deleting a task can orphan tags; prune & reload tags immediately so
+		// tag-related UI/palette stays accurate without requiring a restart.
+		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
 
 	case rainbowTickMsg:
 		if !m.cfg.App.Rainbow {
@@ -788,7 +796,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case cleanupTickMsg:
 		_ = m.svc.Prune(m.ctx)
-		return m, m.cleanupTickCmd()
+		// Prune can remove orphan tags; refresh tags live so the palette/tag views
+		// don't require an app restart.
+		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.cleanupTickCmd())
 
 	case deleteAnimationTickMsg:
 		if m.deletingTaskID != x.TaskID || x.Gen != m.animationGen {
@@ -2128,6 +2138,17 @@ func (m *Model) loadTagsCmd() tea.Cmd {
 	}
 }
 
+func (m *Model) pruneAndLoadTagsCmd() tea.Cmd {
+	return func() tea.Msg {
+		_ = m.svc.Prune(m.ctx)
+		tags, err := m.svc.ListTags(m.ctx)
+		if err != nil {
+			return errMsg{Err: err}
+		}
+		return tagsLoadedMsg{Tags: tags}
+	}
+}
+
 func (m *Model) createTaskCmd(t core.Task) tea.Cmd {
 	return func() tea.Msg {
 		created, err := m.svc.Create(m.ctx, t)
@@ -2217,6 +2238,7 @@ func (m *Model) fetchOpenEditCmd(id string) tea.Cmd {
 func (m *Model) refreshStyles() {
 	m.s = styles.New(m.theme)
 	m.list = tasklist.New(m.s, m.cfg.App.VimMode, m.cfg.App.Animations, m.km)
+	m.list.SetRightOrder(m.cfg.List.Order.Right)
 	m.list.SetTasks(m.tasks)
 	m.list.SetAllTasks(m.all)
 	m.pal = palette.New(m.s)

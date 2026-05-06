@@ -120,6 +120,7 @@ A Lua plugin system hooks into task events. A headless CLI API enables full scri
 | `ctrl+d` | Welcome tour |
 
 <div align="center">
+  <img src="screenshots/new_task.png" width="30%" />
   <img src="screenshots/filter_tags.png" width="30%" />
   <img src="screenshots/help_menu.png" width="30%" />
   <img src="screenshots/settings_menu.png" width="30%" />
@@ -204,6 +205,22 @@ Bubble Tea TUI  (instant rendering)
 ---
 
 ## Configuration
+
+Kairo can be configured via `config.toml` in your application data directory.
+
+### Task List
+You can customize the fields shown on the right side of the task list:
+
+```toml
+[list.order]
+right = ["tags", "due", "priority"]
+```
+
+Valid values for `right` are: `tags`, `due`, `priority`.
+
+### Task Fields
+*   **wait_until**: Hide a task from the task list until the specified datetime. If the task is recurring, new instances are not generated/shown until `wait_until` has passed. Format: `yyyy-MM-dd HH:mm`.
+*   **until**: Stop generating new recurring instances after the specified datetime. Existing instances may remain visible. Format: `yyyy-MM-dd HH:mm`.
 
 Auto-generated on first run at:
 

@@ -25,6 +25,7 @@ type Model struct {
 	vimMode    bool
 	Animations bool
 	km         keymap.Keymap
+	rightOrder []string
 
 	width  int
 	height int
@@ -53,7 +54,21 @@ type Model struct {
 }
 
 func New(s styles.Styles, vimMode bool, animations bool, km keymap.Keymap) Model {
-	return Model{styles: s, vimMode: vimMode, Animations: animations, km: km}
+	return Model{
+		styles:     s,
+		vimMode:    vimMode,
+		Animations: animations,
+		km:         km,
+		rightOrder: []string{"tags", "due", "priority"},
+	}
+}
+
+func (m *Model) SetRightOrder(order []string) {
+	if len(order) == 0 {
+		m.rightOrder = []string{"tags", "due", "priority"}
+		return
+	}
+	m.rightOrder = append([]string(nil), order...)
 }
 
 func (m Model) Selected() (TaskItem, bool) {
@@ -68,6 +83,7 @@ func (m *Model) SetSize(w, h int) {
 }
 
 func (m *Model) SetTasks(ts []core.Task) {
+	ts = filterWaitUntil(ts, time.Now())
 	m.items = buildVisibleTree(ts)
 	if m.sel >= len(m.items) {
 		m.sel = len(m.items) - 1
@@ -75,6 +91,57 @@ func (m *Model) SetTasks(ts []core.Task) {
 	if m.sel < 0 {
 		m.sel = 0
 	}
+}
+
+func filterWaitUntil(ts []core.Task, now time.Time) []core.Task {
+	if len(ts) == 0 {
+		return ts
+	}
+
+	byID := make(map[string]core.Task, len(ts))
+	visible := make(map[string]bool, len(ts))
+	for _, t := range ts {
+		byID[t.ID] = t
+		visible[t.ID] = t.WaitUntil == nil || !now.Before(*t.WaitUntil)
+	}
+
+	// If a task is hidden, also hide its descendants to avoid orphaning.
+	memo := map[string]bool{}
+	var isVisible func(id string) bool
+	isVisible = func(id string) bool {
+		if v, ok := memo[id]; ok {
+			return v
+		}
+		t, ok := byID[id]
+		if !ok {
+			memo[id] = true
+			return true
+		}
+		if !visible[id] {
+			memo[id] = false
+			return false
+		}
+		if t.ParentID == "" {
+			memo[id] = true
+			return true
+		}
+		// If parent doesn't exist, treat this as a root.
+		if _, ok := byID[t.ParentID]; !ok {
+			memo[id] = true
+			return true
+		}
+		v := isVisible(t.ParentID)
+		memo[id] = v
+		return v
+	}
+
+	out := make([]core.Task, 0, len(ts))
+	for _, t := range ts {
+		if isVisible(t.ID) {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 func buildVisibleTree(ts []core.Task) []TaskItem {
@@ -474,32 +541,39 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 
 	rightParts := []string{}
 
-	// Priority badge
-	pri := m.styles.PriorityBadge(t.Priority)
-	rightParts = append(rightParts, pri)
-
-	// Deadline
-	if t.Deadline != nil {
-		deadText := humanDeadline(*t.Deadline, time.Now())
-		deadStyle := m.styles.Muted
-		if t.Deadline.Before(time.Now()) && t.Status != core.StatusDone {
-			deadStyle = lipgloss.NewStyle().Foreground(m.styles.Theme.Bad).Background(rowBg)
-		}
-		rightParts = append(rightParts, deadStyle.Render(styles.IconDeadline+deadText))
+	order := m.rightOrder
+	if len(order) == 0 {
+		order = []string{"tags", "due", "priority"}
 	}
-
-	// Tags
-	if len(t.Tags) > 0 {
-		tagParts := []string{}
-		for _, tag := range t.Tags {
-			pill := lipgloss.JoinHorizontal(lipgloss.Left,
-				m.styles.TagLeft.Render(),
-				m.styles.Tag.Render(tag),
-				m.styles.TagRight.Render(),
-			)
-			tagParts = append(tagParts, pill)
+	for _, f := range order {
+		switch f {
+		case "priority":
+			pri := m.styles.PriorityBadge(t.Priority)
+			rightParts = append(rightParts, pri)
+		case "due":
+			if t.Deadline != nil {
+				now := time.Now()
+				deadText := humanDeadline(*t.Deadline, now)
+				deadStyle := m.styles.Muted
+				if t.Deadline.Before(now) && t.Status != core.StatusDone {
+					deadStyle = lipgloss.NewStyle().Foreground(m.styles.Theme.Bad).Background(rowBg)
+				}
+				rightParts = append(rightParts, deadStyle.Render(styles.IconDeadline+deadText))
+			}
+		case "tags":
+			if len(t.Tags) > 0 {
+				tagParts := []string{}
+				for _, tag := range t.Tags {
+					pill := lipgloss.JoinHorizontal(lipgloss.Left,
+						m.styles.TagLeft.Render(),
+						m.styles.Tag.Render(tag),
+						m.styles.TagRight.Render(),
+					)
+					tagParts = append(tagParts, pill)
+				}
+				rightParts = append(rightParts, strings.Join(tagParts, " "))
+			}
 		}
-		rightParts = append(rightParts, strings.Join(tagParts, " "))
 	}
 
 	right := strings.Join(rightParts, lipgloss.NewStyle().Background(rowBg).Render("  "))

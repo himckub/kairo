@@ -21,6 +21,8 @@ const (
 	IconPriority2 = "󰼐 "
 	IconPriority3 = "󰼑 "
 	IconDeadline  = "󰃰 "
+	IconWaitUntil = "󰥔 "
+	IconUntil     = "󰦞 "
 	IconTag       = "󰓹 "
 	IconSync      = "󰑓 "
 	IconError     = "󰅚 "

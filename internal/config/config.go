@@ -14,11 +14,50 @@ const appName = "kairo"
 
 type Config struct {
 	App     AppConfig     `toml:"app"`
+	List    ListConfig    `toml:"list"`
 	Theme   ThemeConfig   `toml:"theme"`
 	Storage StorageConfig `toml:"storage"`
 	Sync    SyncConfig    `toml:"sync"`
 	Plugins PluginsConfig `toml:"plugins"`
 	Keymap  KeymapConfig  `toml:"keymap"`
+}
+
+type ListConfig struct {
+	Order ListOrderConfig `toml:"order"`
+}
+
+type ListOrderConfig struct {
+	Right []string `toml:"right"`
+}
+
+func normalizeRightOrder(in []string) []string {
+	// Default: tags first (variable width), then due, then priority.
+	def := []string{"tags", "due", "priority"}
+	if len(in) == 0 {
+		return def
+	}
+	allowed := map[string]struct{}{
+		"tags":     {},
+		"due":      {},
+		"priority": {},
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(in))
+	for _, raw := range in {
+		k := strings.ToLower(strings.TrimSpace(raw))
+		if _, ok := allowed[k]; !ok {
+			continue
+		}
+		if _, ok := seen[k]; ok {
+			continue
+		}
+		seen[k] = struct{}{}
+		out = append(out, k)
+	}
+	if len(out) == 0 {
+		return def
+	}
+	return out
 }
 
 type AppConfig struct {
@@ -108,6 +147,11 @@ func Default() Config {
 			MCPEnabled: false,
 			MCPPort:    "8080",
 			Animations: true,
+		},
+		List: ListConfig{
+			Order: ListOrderConfig{
+				Right: []string{"tags", "due", "priority"},
+			},
 		},
 		Theme: ThemeConfig{
 			Bg:      "", // Use theme default
@@ -333,6 +377,9 @@ func Load() (Config, error) {
 	if cfg.Sync.Strategy == "" {
 		cfg.Sync.Strategy = "ours"
 	}
+
+	// Validate/sanitize list ordering.
+	cfg.List.Order.Right = normalizeRightOrder(cfg.List.Order.Right)
 
 	// Keymap migrations.
 	migrated := false

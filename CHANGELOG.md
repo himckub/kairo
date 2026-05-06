@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-05-06
+
+### Fixed
+- Due date time corruption bug: time was incorrectly overwritten by MM-dd being parsed as HH:mm
+- Edit mode field labels were duplicated (plain label + icon label both rendered)
+- Auto-cleanup plugin commands now apply live (no restart required) because `app_start` hooks are emitted after plugins load
+- Tag cleanup now updates live: orphaned tags removed by cleanup/prune no longer require a restart to disappear from the UI
+- Deleting a just-created task now immediately prunes orphaned tags, so tag lists update without waiting for periodic cleanup
+
+### Changed
+- Edit mode: all field labels are now fully highlighted regardless of active state
+- Edit mode: active input fields have a brighter background for clearer focus indication
+- Default task list right-side field order changed to: tags  due  priority
+
+### Added
+- `config.toml` support for `[list.order] right = [...]` to configure right-side field display order
+- New task field `wait_until`: hides a task (and its recurrences) until the specified datetime
+- New task field `until`: stops recurrence generation after the specified datetime
+
 ## [1.5.0]
 
 ### Added
