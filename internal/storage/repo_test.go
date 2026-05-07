@@ -120,3 +120,53 @@ func TestUpsertAndTombstone(t *testing.T) {
 		t.Fatalf("expected deleted task to be missing")
 	}
 }
+
+func TestProjectFiltering(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "kairo.db")
+	r, err := Open(ctx, dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := r.Close(); err != nil {
+			t.Errorf("failed to close repository: %v", err)
+		}
+	}()
+
+	_, err = r.CreateTask(ctx, core.Task{
+		Title:   "Task 1",
+		Project: "Work",
+		Status:  core.StatusTodo,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = r.CreateTask(ctx, core.Task{
+		Title:   "Task 2",
+		Project: "Personal",
+		Status:  core.StatusTodo,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Filter by project "Work"
+	ts, err := r.ListTasks(ctx, ListOptions{Filter: core.Filter{Project: "Work", Statuses: []core.Status{core.StatusTodo}, IncludeNilDeadline: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ts) != 1 || ts[0].Project != "Work" {
+		t.Fatalf("expected 1 task in Work project, got %d (project: %q)", len(ts), ts[0].Project)
+	}
+
+	// Retrieve all projects
+	projects, err := r.ListProjects(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(projects) != 2 {
+		t.Fatalf("expected 2 projects, got %d: %v", len(projects), projects)
+	}
+}

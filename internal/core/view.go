@@ -35,6 +35,7 @@ const (
 type Filter struct {
 	Statuses           []Status
 	Tags               []string
+	Project            string
 	Priority           *Priority
 	From               *time.Time
 	To                 *time.Time
@@ -45,6 +46,9 @@ type Filter struct {
 func (f Filter) ApplyToTask(t *Task) {
 	if len(f.Statuses) > 0 {
 		t.Status = f.Statuses[0]
+	}
+	if f.Project != "" {
+		t.Project = f.Project
 	}
 	if len(f.Tags) > 0 {
 		for _, required := range f.Tags {

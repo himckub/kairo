@@ -45,6 +45,9 @@ type TaskService interface {
 	// ListTags retrieves all distinct tags.
 	ListTags(ctx context.Context) ([]string, error)
 
+	// ListProjects retrieves all distinct project names.
+	ListProjects(ctx context.Context) ([]string, error)
+
 	// GetSnapshot returns all active tasks and tombstones for sync.
 	GetSnapshot(ctx context.Context) ([]core.Task, []storage.Tombstone, error)
 
@@ -226,6 +229,15 @@ func (s *taskService) ListTags(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to list tags: %w", err)
 	}
 	return tags, nil
+}
+
+// ListProjects retrieves all distinct project names.
+func (s *taskService) ListProjects(ctx context.Context) ([]string, error) {
+	projects, err := s.repo.ListProjects(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+	return projects, nil
 }
 
 // GetSnapshot returns all active tasks and tombstones for sync.

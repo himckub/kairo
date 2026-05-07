@@ -50,6 +50,7 @@ type Model struct {
 	status    textinput.Model
 	recur     textinput.Model
 	until     textinput.Model
+	project   textinput.Model
 	parentID  textinput.Model
 	desc      textarea.Model
 
@@ -74,7 +75,7 @@ type Model struct {
 	renderer    *glamour.TermRenderer
 }
 
-func New(s styles.Styles, mode Mode, t core.Task) Model {
+func New(s styles.Styles, mode Mode, t core.Task, preview bool) Model {
 	applyFieldStyles := func(in *textinput.Model) {
 		// Keep labels fully highlighted even when the field is not focused.
 		in.PromptStyle = s.Accent.Bold(true)
@@ -150,6 +151,12 @@ func New(s styles.Styles, mode Mode, t core.Task) Model {
 	}
 	applyFieldStyles(&un)
 
+	pj := textinput.New()
+	pj.Prompt = ""
+	pj.CharLimit = 64
+	pj.SetValue(t.Project)
+	applyFieldStyles(&pj)
+
 	pid := textinput.New()
 	pid.Prompt = ""
 	pid.CharLimit = 64
@@ -175,10 +182,11 @@ func New(s styles.Styles, mode Mode, t core.Task) Model {
 		status:      st,
 		recur:       re,
 		until:       un,
+		project:     pj,
 		parentID:    pid,
 		desc:        d,
 		focus:       0,
-		showPreview: true,
+		showPreview: preview,
 	}
 	m.recomputeDeadline()
 	m.recomputeWaitUntil()
@@ -210,6 +218,7 @@ func (m *Model) SetSize(w, h int) {
 	m.status.Width = 10
 	m.recur.Width = max(20, editorW-20)
 	m.until.Width = max(20, editorW-20)
+	m.project.Width = max(20, editorW-20)
 	m.parentID.Width = max(20, editorW-20)
 
 	// Recreate renderer with new width
@@ -244,14 +253,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, func() tea.Msg { return CloseMsg{} }
 		case "tab":
 			m.blurAll()
-			m.focus = (m.focus + 1) % 10
+			m.focus = (m.focus + 1) % 11
 			m.focusField()
 			return m, nil
 		case "shift+tab":
 			m.blurAll()
 			m.focus--
 			if m.focus < 0 {
-				m.focus = 9
+				m.focus = 10
 			}
 			m.focusField()
 			return m, nil
@@ -262,7 +271,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.SetSize(m.width, m.height)
 			return m, nil
 		case "enter":
-			if m.focus == 8 {
+			if m.focus == 9 {
 				return m, func() tea.Msg { return SelectParentMsg{} }
 			}
 		}
@@ -303,8 +312,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.recomputeUntil()
 		}
 	case 8:
-		m.parentID, cmd = m.parentID.Update(msg)
+		m.project, cmd = m.project.Update(msg)
 	case 9:
+		m.parentID, cmd = m.parentID.Update(msg)
+	case 10:
 		m.desc, cmd = m.desc.Update(msg)
 	}
 	return m, cmd
@@ -389,14 +400,16 @@ func (m Model) View() string {
 		fields = append(fields, m.styles.Muted.Padding(0, 2).Render(m.untilPreview))
 	}
 
+	fields = append(fields, renderField("󱓡 ", "Project:", m.project.View(), m.focus == 8))
+
 	// Replace parentID text input field with a selection field
 	parentIDDisplay := m.parentID.Value()
 	if parentIDDisplay == "" {
 		parentIDDisplay = "None"
 	}
-	parentField := renderField("󱗼 ", "Parent:", parentIDDisplay, m.focus == 8)
+	parentField := renderField("󱗼 ", "Parent:", parentIDDisplay, m.focus == 9)
 	// Add an action hint for selecting
-	if m.focus == 8 {
+	if m.focus == 9 {
 		parentField += m.styles.Muted.PaddingLeft(2).Render("press enter to select")
 	}
 	fields = append(fields, parentField)
@@ -448,6 +461,7 @@ func (m *Model) blurAll() {
 	m.status.Blur()
 	m.recur.Blur()
 	m.until.Blur()
+	m.project.Blur()
 	m.parentID.Blur()
 	m.desc.Blur()
 }
@@ -471,8 +485,10 @@ func (m *Model) focusField() {
 	case 7:
 		m.until.Focus()
 	case 8:
-		m.parentID.Focus()
+		m.project.Focus()
 	case 9:
+		m.parentID.Focus()
+	case 10:
 		m.desc.Focus()
 	}
 }
@@ -585,6 +601,7 @@ func (m *Model) recomputeUntil() {
 func (m Model) saveCmd() tea.Cmd {
 	title := strings.TrimSpace(m.title.Value())
 	desc := strings.TrimSpace(m.desc.Value())
+	prj := strings.TrimSpace(m.project.Value())
 	tags := core.ParseTags(m.tags.Value())
 	priRaw := strings.TrimSpace(m.priority.Value())
 	priInt, _ := strconv.Atoi(priRaw)
@@ -622,6 +639,7 @@ func (m Model) saveCmd() tea.Cmd {
 		task := core.Task{
 			Title:             title,
 			Description:       desc,
+			Project:           prj,
 			Tags:              tags,
 			Priority:          pri,
 			Deadline:          deadline,
@@ -665,6 +683,9 @@ func (m Model) saveCmd() tea.Cmd {
 	}
 	if st != m.orig.Status {
 		patch.Status = &st
+	}
+	if prj != m.orig.Project {
+		patch.Project = &prj
 	}
 	if recType != m.orig.Recurrence {
 		patch.Recurrence = &recType

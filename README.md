@@ -77,25 +77,35 @@ Press `n` to create your first task. `ctrl+s` to save. That's it.
 Sub-millisecond fuzzy search. Vim bindings (`j/k/gg/G`). Natural language deadlines like `tomorrow 10am` or `next friday`. Full keyboard control — you never touch the mouse.
 
 ### 🗂 Nested Tasks & Hierarchy
-Organize work into deep hierarchies. Nest tasks via the **Parent** field in the editor, collapse/expand with `Space`, and export/import with full structure preserved — across JSON, CSV, Markdown, and plain text.
+Organize work into deep hierarchies and separate projects. Nest tasks via the **Parent** field in the editor, switch projects with `ctrl+e` to focus your workspace, and export/import with full structure preserved — across JSON, CSV, Markdown, and plain text.
 
 ### 🔁 Recurring Tasks
 Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`15`). When completed, Kairo generates the next instance immediately with a smart due-date preview.
 
 ### 🔒 Your Data, Locally
-SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand.
+SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand. Project organization is preserved in your database.
 
 ### 🧭 Interactive Stats Dashboard
 Press `s` to open a next-gen "Command Center". Visualize your **Productivity DNA**, track real-time momentum, and get behavioral insights like "You complete 73% more tasks at night". Fully animated, keyboard-driven, and deeply insightful.
 
 ### 🤖 AI — Optional, Never Intrusive
-Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language. Invisible until you need it.
+Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language, including assigning to specific projects. Invisible until you need it.
 
 ### 🎨 Beautiful by Default
 32 built-in themes with edge-to-edge background coverage. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`). Cinematic create/complete/delete animations — or disable them entirely in `config.toml`.
 
 ### 🧩 Extensible to the Core
 A Lua plugin system hooks into task events. A headless CLI API enables full scripting. An MCP server opens Kairo to AI agents — with complete support for recurring schedules and nested hierarchies.
+
+### 🎨 Tag Highlighting
+Color-code your tags directly in `config.toml`. Supports hex codes or theme-aware `ui-*` aliases (e.g., `ui-accent`).
+
+```toml
+[tags.highlight]
+work    = { fg = "#CCCCCC" }
+private = "fg=#EEEEEE,bg=#0000FF,bold"
+diy     = "bg=ui-accent"
+```
 
 ---
 
@@ -104,19 +114,22 @@ A Lua plugin system hooks into task events. A headless CLI API enables full scri
 | Key | Action |
 |---|---|
 | `n` | New task |
+| `D` | Duplicate task |
 | `e` | Edit task |
 | `z` | Complete task |
-| `d` | Delete task |
-| `Space` | Collapse / expand subtasks |
+| `ctrl+d` | Duplicate task |
+| `Space` | Select task / Collapse subtasks |
 | `s` | Stats dashboard |
 | `f` | Filter by tag |
+| `ctrl+e` | Switch project |
+| `p` | Manage plugins |
 | `t` | Switch theme |
 | `ctrl+p` | Command palette / Markdown preview |
 | `ctrl+a` | AI panel |
 | `ctrl+s` | Settings |
 | `x` | Import / Export |
 | `?` | Help |
-| `ctrl+d` | Welcome tour |
+| `ctrl+w` | Welcome tour |
 
 <div align="center">
   <img src="screenshots/new_task.png" width="30%" />
@@ -272,7 +285,7 @@ Prefer not to edit files? `ctrl+s` opens the in-app settings menu.
 
 PRs are welcome — especially for themes, plugins, performance, and docs. If something bugs you, fix it.
 
-Huge thanks to [@Tornado300](https://github.com/Tornado300) for key bug fixes that made Kairo better for everyone.
+Huge thanks to [@Tornado300](https://github.com/Tornado300) and [@riodelphino](https://github.com/riodelphino) for key bug fixes and improvements that made Kairo better for everyone.
 
 ---
 

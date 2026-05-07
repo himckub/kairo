@@ -11,6 +11,7 @@ const (
 	KindTask    Kind = "task"
 	KindCommand Kind = "command"
 	KindTag     Kind = "tag"
+	KindProject Kind = "project"
 )
 
 type Item struct {
@@ -88,10 +89,12 @@ func kindRank(k Kind) int {
 	switch k {
 	case KindCommand:
 		return 0
-	case KindTask:
+	case KindProject:
 		return 1
-	case KindTag:
+	case KindTask:
 		return 2
+	case KindTag:
+		return 3
 	default:
 		return 9
 	}

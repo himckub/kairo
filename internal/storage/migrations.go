@@ -82,6 +82,10 @@ func migrate(ctx context.Context, db *sql.DB) error {
 			CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp_ms);
 			CREATE INDEX IF NOT EXISTS idx_events_task ON events(task_id);
 		`},
+		{5, `
+			ALTER TABLE tasks ADD COLUMN project TEXT;
+			CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project);
+		`},
 	}
 
 	for _, s := range steps {

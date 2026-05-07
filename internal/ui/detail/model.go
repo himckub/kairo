@@ -138,12 +138,20 @@ func (m Model) renderMeta() string {
 		lipgloss.NewStyle().Padding(m.getTopPadding(), 4).Render(priority),
 	))
 
-	// Deadline & Tags
+	// Deadline & Tags & Project
 	if m.task.Deadline != nil {
 		meta = append(meta, lipgloss.NewStyle().Padding(0, 2).Render(
 			lipgloss.JoinHorizontal(lipgloss.Left,
 				m.styles.Muted.Render("Due:      "),
 				m.styles.DetailValue.Render(styles.IconDeadline+m.task.Deadline.Local().Format("Mon, Jan 02 15:04")),
+			)))
+	}
+
+	if m.task.Project != "" {
+		meta = append(meta, lipgloss.NewStyle().Padding(0, 2).Render(
+			lipgloss.JoinHorizontal(lipgloss.Left,
+				m.styles.Muted.Render("Project:  "),
+				m.styles.DetailValue.Render(m.task.Project),
 			)))
 	}
 

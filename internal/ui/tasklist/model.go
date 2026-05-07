@@ -52,18 +52,26 @@ type Model struct {
 
 	DueMinimal bool
 
-	lastKey string // For tracking key sequences like 'gg'
+	TagsHighlight map[string]string // Added for tag highlighting
+	selectedIDs   map[string]bool   // Added for multi-selection
+	lastKey       string            // For tracking key sequences like 'gg'
 }
 
 func New(s styles.Styles, vimMode bool, animations bool, km keymap.Keymap, dueMinimal bool) Model {
 	return Model{
-		styles:     s,
-		vimMode:    vimMode,
-		Animations: animations,
-		km:         km,
-		rightOrder: []string{"tags", "due", "priority"},
-		DueMinimal: dueMinimal,
+		styles:        s,
+		vimMode:       vimMode,
+		Animations:    animations,
+		km:            km,
+		rightOrder:    []string{"tags", "due", "priority"},
+		DueMinimal:    dueMinimal,
+		selectedIDs:   make(map[string]bool),
+		TagsHighlight: make(map[string]string),
 	}
+}
+
+func (m *Model) SetTagsConfig(cfg map[string]string) {
+	m.TagsHighlight = cfg
 }
 
 func (m *Model) SetRightOrder(order []string) {
@@ -209,6 +217,22 @@ func (m *Model) SetCreationAnimation(taskID string, start time.Time, duration ti
 	m.creationDur = duration
 }
 
+func (m Model) GetSelectedTasks() []core.Task {
+	var selected []core.Task
+	for _, item := range m.items {
+		if m.selectedIDs[item.ID] {
+			selected = append(selected, item.Task)
+		}
+	}
+	// If nothing is selected, fall back to current selection (as per original functionality)
+	if len(selected) == 0 {
+		if item, ok := m.Selected(); ok {
+			selected = append(selected, item.Task)
+		}
+	}
+	return selected
+}
+
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch x := msg.(type) {
 	case tea.KeyMsg:
@@ -263,6 +287,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.lastKey = "g"
 				return m, nil // Don't reset lastKey yet
 			}
+		case " ":
+			m.lastKey = ""
+			if item, ok := m.Selected(); ok {
+				if m.selectedIDs[item.ID] {
+					delete(m.selectedIDs, item.ID)
+				} else {
+					m.selectedIDs[item.ID] = true
+				}
+			}
+		case "esc":
+			m.lastKey = ""
+			m.selectedIDs = make(map[string]bool)
 		default:
 			m.lastKey = ""
 		}
@@ -458,9 +494,13 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 
 	// Selection indicator — render only for selected task
 	indicator := " "
-	if selected {
+	if selected || m.selectedIDs[t.ID] {
+		indicatorStyle := m.styles.Theme.Muted
+		if m.selectedIDs[t.ID] {
+			indicatorStyle = m.styles.Theme.Accent
+		}
 		indicator = lipgloss.NewStyle().
-			Foreground(m.styles.Theme.Accent).
+			Foreground(indicatorStyle).
 			Background(rowBg).
 			Bold(true).
 			Render("│")
@@ -586,19 +626,35 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 			if len(t.Tags) > 0 {
 				tagParts := []string{}
 				for _, tag := range t.Tags {
-					tagContent := m.styles.Tag.
-						Background(m.styles.Theme.Accent).
-						Foreground(m.styles.Theme.Bg).
+					tagStyle := m.styles.Tag
+					if highlight, ok := m.TagsHighlight[tag]; ok {
+						tagStyle = styles.ParseTagStyle(highlight, m.styles.Theme)
+					}
+
+					tagContent := tagStyle.
 						Padding(0, 0).
 						Render(tag)
 					pill := lipgloss.JoinHorizontal(lipgloss.Left,
-						m.styles.TagLeft.Foreground(m.styles.Theme.Accent).Render(),
+						m.styles.TagLeft.Foreground(tagStyle.GetBackground()).Render(),
 						tagContent,
-						m.styles.TagRight.Foreground(m.styles.Theme.Accent).Render(),
+						m.styles.TagRight.Foreground(tagStyle.GetBackground()).Render(),
 					)
 					tagParts = append(tagParts, pill)
 				}
 				rightParts = append(rightParts, strings.Join(tagParts, " "))
+			}
+		case "project":
+			if t.Project != "" {
+				pill := lipgloss.JoinHorizontal(lipgloss.Left,
+					m.styles.TagLeft.Foreground(m.styles.Theme.Muted).Render(),
+					m.styles.Tag.
+						Background(m.styles.Theme.Muted).
+						Foreground(m.styles.Theme.Bg).
+						Padding(0, 0).
+						Render(t.Project),
+					m.styles.TagRight.Foreground(m.styles.Theme.Muted).Render(),
+				)
+				rightParts = append(rightParts, pill)
 			}
 		}
 	}

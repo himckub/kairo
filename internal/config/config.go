@@ -13,13 +13,30 @@ import (
 const appName = "kairo"
 
 type Config struct {
-	App     AppConfig     `toml:"app"`
-	List    ListConfig    `toml:"list"`
-	Theme   ThemeConfig   `toml:"theme"`
-	Storage StorageConfig `toml:"storage"`
-	Sync    SyncConfig    `toml:"sync"`
-	Plugins PluginsConfig `toml:"plugins"`
-	Keymap  KeymapConfig  `toml:"keymap"`
+	App      AppConfig      `toml:"app"`
+	Projects ProjectsConfig `toml:"projects"`
+	Tags     TagsConfig     `toml:"tags"`
+	Edit     EditConfig     `toml:"edit"`
+	List     ListConfig     `toml:"list"`
+	Theme    ThemeConfig    `toml:"theme"`
+	Storage  StorageConfig  `toml:"storage"`
+	Sync     SyncConfig     `toml:"sync"`
+	Plugins  PluginsConfig  `toml:"plugins"`
+	Keymap   KeymapConfig   `toml:"keymap"`
+}
+
+type EditConfig struct {
+	Preview bool `toml:"preview"`
+}
+
+type TagsConfig struct {
+	Highlight map[string]string `toml:"highlight"`
+}
+
+type ProjectsConfig struct {
+	Default    string `toml:"default"`
+	Shortcut   string `toml:"shortcut"`
+	ShowColumn string `toml:"show_column"` // "auto" | "always" | "never"
 }
 
 type ListConfig struct {
@@ -49,6 +66,7 @@ func normalizeRightOrder(in []string) []string {
 		"tags":     {},
 		"due":      {},
 		"priority": {},
+		"project":  {},
 	}
 	seen := map[string]struct{}{}
 	out := make([]string, 0, len(in))
@@ -71,6 +89,7 @@ func normalizeRightOrder(in []string) []string {
 
 type AppConfig struct {
 	Theme               string `toml:"theme"`
+	ActiveProject       string `toml:"active_project"`
 	VimMode             bool   `toml:"vim_mode"`
 	ShowHelp            bool   `toml:"show_help"`
 	ShowID              bool   `toml:"show_id"`
@@ -123,25 +142,28 @@ type KeymapConfig struct {
 	Back       string `toml:"back"`
 	Quit       string `toml:"quit"`
 
-	ViewInbox      string `toml:"view_inbox"`
-	ViewToday      string `toml:"view_today"`
-	ViewUpcoming   string `toml:"view_upcoming"`
-	ViewCompleted  string `toml:"view_completed"`
-	ViewTag        string `toml:"view_tag"`
-	ViewPriority   string `toml:"view_priority"`
-	CycleTheme     string `toml:"cycle_theme"`
-	OpenPluginDir  string `toml:"open_plugin_dir"`
-	ManagePlugins  string `toml:"manage_plugins"`
-	ToggleStrike   string `toml:"toggle_strike"`
-	ToggleCollapse string `toml:"toggle_collapse"`
-	Help           string `toml:"help"`
-	Issues         string `toml:"issues"`
-	Discussions    string `toml:"discussions"`
-	Changelog      string `toml:"changelog"`
-	Settings       string `toml:"settings"`
-	ImportExport   string `toml:"import_export"`
-	AIPanelToggle  string `toml:"ai_panel_toggle"`
-	Stats          string `toml:"stats"`
+	ViewInbox       string `toml:"view_inbox"`
+	ViewToday       string `toml:"view_today"`
+	ViewUpcoming    string `toml:"view_upcoming"`
+	ViewCompleted   string `toml:"view_completed"`
+	ViewTag         string `toml:"view_tag"`
+	ViewPriority    string `toml:"view_priority"`
+	CycleTheme      string `toml:"cycle_theme"`
+	OpenPluginDir   string `toml:"open_plugin_dir"`
+	ManagePlugins   string `toml:"manage_plugins"`
+	ToggleStrike    string `toml:"toggle_strike"`
+	ToggleCollapse  string `toml:"toggle_collapse"`
+	DuplicateTask   string `toml:"duplicate_task"`
+	Help            string `toml:"help"`
+	WelcomeTour     string `toml:"welcome_tour"`
+	Issues          string `toml:"issues"`
+	Discussions     string `toml:"discussions"`
+	Changelog       string `toml:"changelog"`
+	Settings        string `toml:"settings"`
+	ImportExport    string `toml:"import_export"`
+	AIPanelToggle   string `toml:"ai_panel_toggle"`
+	Stats           string `toml:"stats"`
+	ProjectSwitcher string `toml:"project_switcher"`
 }
 
 func Default() Config {
@@ -156,6 +178,14 @@ func Default() Config {
 			MCPEnabled: false,
 			MCPPort:    "8080",
 			Animations: true,
+		},
+		Projects: ProjectsConfig{
+			Default:    "default",
+			Shortcut:   "p",
+			ShowColumn: "auto",
+		},
+		Edit: EditConfig{
+			Preview: true,
 		},
 		List: ListConfig{
 			Order: ListOrderConfig{
@@ -194,33 +224,36 @@ func Default() Config {
 			Dir:     "plugins",
 		},
 		Keymap: KeymapConfig{
-			Palette:        "ctrl+p",
-			TaskSearch:     "/",
-			NewTask:        "n",
-			EditTask:       "e",
-			DeleteTask:     "d",
-			OpenTask:       "enter",
-			Back:           "esc",
-			Quit:           "q",
-			ViewInbox:      "1",
-			ViewToday:      "2",
-			ViewUpcoming:   "3",
-			ViewCompleted:  "4",
-			ViewTag:        "f",
-			ViewPriority:   "5",
-			CycleTheme:     "t",
-			OpenPluginDir:  "ctrl+g",
-			ManagePlugins:  "p",
-			ToggleStrike:   "z",
-			ToggleCollapse: "space",
-			Help:           "?",
-			Issues:         "i",
-			Discussions:    "u",
-			Changelog:      "c",
-			Settings:       "ctrl+s",
-			ImportExport:   "x",
-			AIPanelToggle:  "ctrl+a",
-			Stats:          "s",
+			Palette:         "ctrl+p",
+			TaskSearch:      "/",
+			NewTask:         "n",
+			EditTask:        "e",
+			DeleteTask:      "d",
+			OpenTask:        "enter",
+			Back:            "esc",
+			Quit:            "q",
+			ViewInbox:       "1",
+			ViewToday:       "2",
+			ViewUpcoming:    "3",
+			ViewCompleted:   "4",
+			ViewTag:         "f",
+			ViewPriority:    "5",
+			CycleTheme:      "t",
+			OpenPluginDir:   "ctrl+g",
+			ManagePlugins:   "p",
+			ToggleStrike:    "z",
+			ToggleCollapse:  "space",
+			DuplicateTask:   "ctrl+d",
+			Help:            "?",
+			WelcomeTour:     "ctrl+w",
+			Issues:          "i",
+			Discussions:     "u",
+			Changelog:       "c",
+			Settings:        "ctrl+s",
+			ImportExport:    "x",
+			AIPanelToggle:   "ctrl+a",
+			Stats:           "s",
+			ProjectSwitcher: "ctrl+e",
 		},
 	}
 }
@@ -338,11 +371,17 @@ func Load() (Config, error) {
 	if cfg.Keymap.ManagePlugins == "" {
 		cfg.Keymap.ManagePlugins = defaults.Keymap.ManagePlugins
 	}
+	if cfg.Keymap.ProjectSwitcher == "" {
+		cfg.Keymap.ProjectSwitcher = defaults.Keymap.ProjectSwitcher
+	}
 	if cfg.Keymap.ToggleStrike == "" {
 		cfg.Keymap.ToggleStrike = defaults.Keymap.ToggleStrike
 	}
 	if cfg.Keymap.ToggleCollapse == "" {
 		cfg.Keymap.ToggleCollapse = defaults.Keymap.ToggleCollapse
+	}
+	if cfg.Keymap.DuplicateTask == "" {
+		cfg.Keymap.DuplicateTask = defaults.Keymap.DuplicateTask
 	}
 	if cfg.Keymap.Help == "" {
 		cfg.Keymap.Help = defaults.Keymap.Help

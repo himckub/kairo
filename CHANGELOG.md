@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5]
+
+### Added
+- **Project Support**: Added first-class project organization.
+  - Tasks now support a `project` field.
+  - Added a `ProjectSwitcher` popup (default shortcut: `ctrl+e`) for quick navigation between projects.
+  - Added `[projects] default = "project_name"` config to set startup project.
+  - Added `<All Projects>` view to see tasks across all contexts.
+  - Projects are now visible in the header and can be optionally displayed in the list view.
+  - Added per-tag color highlighting via `[tags.highlight]` in config.toml with `ui-*` theme alias support.
+  - Added `edit.preview` config option to persist the preview panel's default state.
+  - Added task duplication with `D` shortcut; automatically opens edit mode on the duplicate.
+  - Added Multi-Selection support:
+    - Toggle task selection with `Space`.
+    - Bulk actions (complete/delete) for selected tasks via `z` and `d`.
+    - Clear selection with `Esc`.
+- **Config**: Added `[projects]` section to `config.toml` for default project, switcher shortcut, and column visibility settings.
+- **Help Menu**: Added `ProjectSwitcher` (`ctrl+e`) to help menu keybindings list.
+
+### Fixed
+- Project list no longer displays empty projects (projects with no tasks are filtered out from the switcher).
+- Project Switcher now only responds to `esc` for closing (no longer toggled by `p` ManagePlugins key).
+- Fixed project list not updating in real-time when new projects are created.
+
+### Changed
+- **Task Editor**: Added dedicated Project input field.
+- **UI**: Added project display pill to header.
+- **Keybindings**: Changed `Welcome Tour` keybind from `ctrl+d` to `ctrl+w` to accomodate the `duplicate task` keybind.
+
 ## [1.5.4]
 
 ### Added

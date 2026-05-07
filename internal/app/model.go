@@ -99,6 +99,7 @@ const (
 	ModeImportExport
 	ModeOnboarding
 	ModeStats
+	ModeProjectSwitcher
 )
 
 type Model struct {
@@ -115,6 +116,8 @@ type Model struct {
 	height int
 
 	mode Mode
+
+	activeProject string
 
 	views         []core.View
 	activeIdx     int
@@ -144,12 +147,14 @@ type Model struct {
 
 	palFullIdx      *search.Index
 	palTasksIdx     *search.Index
+	palProjectsIdx  *search.Index
 	palTasksOnly    bool
 	selectingParent bool
 
-	tasks []core.Task
-	all   []core.Task
-	tags  []string
+	tasks    []core.Task
+	all      []core.Task
+	tags     []string
+	projects []string
 
 	statusText string
 	isErr      bool
@@ -237,10 +242,12 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 		theme:                  th,
 		s:                      s,
 		mode:                   ModeList,
+		activeProject:          cfg.App.ActiveProject,
 		tagFilterInput:         tagInput,
 		RainbowAnimationOffset: 0,
 	}
 	m.list = tasklist.New(m.s, cfg.App.VimMode, cfg.App.Animations, m.km, cfg.List.Fields.Due.Minimal)
+	m.list.SetTagsConfig(cfg.Tags.Highlight)
 	m.list.SetRightOrder(cfg.List.Order.Right)
 	m.pal = palette.New(m.s)
 	m.det = detail.New(m.s)
@@ -375,7 +382,10 @@ func applyThemeOverride(t theme.Theme, o config.ThemeConfig) theme.Theme {
 }
 
 func (m *Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.loadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.checkUpdateCmd(), m.cleanupTickCmd()}
+	if m.cfg.App.ActiveProject != "" {
+		m.activeProject = m.cfg.App.ActiveProject
+	}
+	cmds := []tea.Cmd{m.loadTagsCmd(), m.loadProjectsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.checkUpdateCmd(), m.cleanupTickCmd()}
 	if m.cfg.App.Rainbow {
 		m.rainbowAnimating = true
 		cmds = append(cmds, m.rainbowTickCmd())
@@ -409,11 +419,8 @@ func (m *Model) isInputFocused() bool {
 	case ModeEditor:
 		// Editor has multiple text input fields that accept user input
 		return true
-	case ModePalette:
-		// Palette has a search input field that's always focused when active
-		return true
-	case ModeTagFilter:
-		// Tag filter input field is active when filtering by tag
+	case ModePalette, ModeTagFilter, ModeProjectSwitcher:
+		// Palette, TagFilter, and ProjectSwitcher have search input fields that are focused when active
 		return true
 	case ModeImportExport:
 		// Import/Export menu has a file path input field
@@ -469,6 +476,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.rebuildPaletteIndex()
 		return m, nil
 
+	case projectsLoadedMsg:
+		m.projects = x.Projects
+		m.rebuildProjectsIndex()
+		return m, nil
+
 	case statsLoadedMsg:
 		m.stats.SetData(x.Data)
 		return m, nil
@@ -494,7 +506,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case palette.CloseMsg:
-		if m.mode == ModePalette {
+		if m.mode == ModePalette || m.mode == ModeProjectSwitcher {
 			m.mode = ModeList
 			if m.cfg.App.Animations {
 				m.transitioning = m.cfg.App.Animations
@@ -698,7 +710,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case palette.SelectMsg:
-		if m.mode != ModePalette {
+		if m.mode != ModePalette && m.mode != ModeProjectSwitcher {
 			return m, nil
 		}
 
@@ -713,11 +725,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.mode = ModeList
 		switch x.Item.Kind {
+		case search.KindProject:
+			m.activeProject = x.Item.ID
+			m.cfg.App.ActiveProject = m.activeProject
+			_ = m.cfg.Save()
+			var animCmd tea.Cmd
+			if m.cfg.App.Animations {
+				m.transitioning = m.cfg.App.Animations
+				m.transitionStarted = time.Now()
+				m.animationGen++
+				animCmd = m.viewTransitionTickCmd()
+			}
+			return m, tea.Batch(m.loadTasksCmd(), animCmd)
 		case search.KindTask:
 			return m, m.fetchOpenTaskCmd(x.Item.ID)
 		case search.KindTag:
 			m.tagFilter.Set(x.Item.ID)
-			// ... (rest of the transition code)
 			m.setActiveView(core.ViewTag)
 			m.transitioning = m.cfg.App.Animations
 			if m.transitioning {
@@ -769,6 +792,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.animationGen++
 		return m, tea.Batch(
 			m.loadTagsCmd(),
+			m.loadProjectsCmd(),
 			m.loadTasksCmd(),
 			m.loadAllTasksCmd(),
 			m.syncIfEnabledCmd(),
@@ -781,7 +805,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 	case taskUpdatedMsg:
-		return m, tea.Batch(m.loadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
+		return m, tea.Batch(m.loadTagsCmd(), m.loadProjectsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
 
 	case string: // AI prompt from panel
 		return m, tea.Batch(m.startAIStreamCmd(x), m.listenAICmd())
@@ -901,7 +925,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case openEditMsg:
-		e := editor.New(m.s, editor.ModeEdit, x.Task)
+		e := editor.New(m.s, editor.ModeEdit, x.Task, true)
 		m.edit = &e
 		m.rebuildComponentSizes()
 		m.mode = ModeEditor
@@ -961,18 +985,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == ModeConfirmDelete {
 			switch km.String() {
 			case "y", "enter":
-				if item, ok := m.list.Selected(); ok {
-					t := item.Task
-					m.mode = ModeList
-					if m.cfg.App.Animations {
-						m.deletingTaskID = t.ID
-						m.deleteStarted = time.Now()
-						m.deleteDuration = 600 * time.Millisecond
-						m.animationGen++
-						return m, m.deleteAnimationTickCmd(t.ID)
-					}
-					return m, m.deleteTaskCmd(t.ID)
+				selected := m.list.GetSelectedTasks()
+				var cmds []tea.Cmd
+				for _, t := range selected {
+					cmds = append(cmds, m.deleteTaskCmd(t.ID))
 				}
+				m.mode = ModeList
+				return m, tea.Batch(cmds...)
 			case "a":
 				m.mode = ModeList
 				var animCmd tea.Cmd
@@ -1076,6 +1095,28 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Mode-specific toggles that should work even when the mode is active (and thus input is focused)
+		if m.mode == ModeProjectSwitcher && keymapMatch(m.km.ProjectSwitcher, km) {
+			m.mode = ModeList
+			return m, nil
+		}
+		if m.mode == ModePalette && keymapMatch(m.km.Palette, km) {
+			m.mode = ModeList
+			return m, nil
+		}
+
+		// Explicit check for ctrl+e to prevent collision with enter
+		if km.String() == "ctrl+e" {
+			if m.mode == ModeProjectSwitcher {
+				m.mode = ModeList
+				return m, nil
+			}
+			m.mode = ModeProjectSwitcher
+			m.applyPaletteIndex()
+			m.pal.SetPlaceholder("Switch project…")
+			return m, m.pal.Open()
+		}
+
 		// Global key handling - only process keybindings if no input field is focused.
 		// This ensures that text input has exclusive focus and keybindings are disabled
 		// while typing in menus or editors.
@@ -1085,7 +1126,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			if km.String() == "ctrl+d" {
+			if km.String() == "ctrl+w" {
 				m.onb = onboarding.New(m.s, m.km)
 				m.onb.SetSize(m.width, m.height)
 				m.mode = ModeOnboarding
@@ -1111,6 +1152,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Sub-menu specific toggles/actions that should work even in the menu themselves (to close them)
 			if keymapMatch(m.km.ManagePlugins, km) {
 				if m.mode == ModePluginMenu {
+					m.mode = ModeList
 					if m.cfg.App.Animations {
 						m.transitioning = m.cfg.App.Animations
 						m.transitionStarted = time.Now()
@@ -1290,7 +1332,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case keymapMatch(m.km.NewTask, km):
 					task := core.Task{Status: core.StatusTodo, Priority: core.P1}
 					m.activeFilter().ApplyToTask(&task)
-					e := editor.New(m.s, editor.ModeNew, task)
+					e := editor.New(m.s, editor.ModeNew, task, false)
 					m.edit = &e
 					m.rebuildComponentSizes()
 					m.mode = ModeEditor
@@ -1317,22 +1359,27 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, m.updateTaskCmd(item.ID, patch)
 					}
 				case keymapMatch(m.km.ToggleStrike, km):
-					if item, ok := m.list.Selected(); ok {
-						t := item.Task
-						m.animationGen++
-						m.animationReverse = (t.Status == core.StatusDone)
-						m.animatingTaskID = t.ID
-						m.animationStarted = time.Now()
-						m.animationDuration = 600 * time.Millisecond
-						if m.cfg.App.Animations {
-							return m, m.strikeAnimationTickCmd(t.ID)
-						}
-						// No animation, just update
+					selected := m.list.GetSelectedTasks()
+					var cmds []tea.Cmd
+					for _, t := range selected {
 						newStatus := core.StatusDone
 						if t.Status == core.StatusDone {
 							newStatus = core.StatusTodo
 						}
-						return m, m.updateTaskCmd(t.ID, core.TaskPatch{Status: &newStatus})
+						cmds = append(cmds, m.updateTaskCmd(t.ID, core.TaskPatch{Status: &newStatus}))
+					}
+					return m, tea.Batch(cmds...)
+				case keymapMatch(m.km.DuplicateTask, km):
+					if item, ok := m.list.Selected(); ok {
+						t := item.Task
+						dup := t
+						dup.ID = ""
+						dup.Title = t.Title + " (copy)"
+						e := editor.New(m.s, editor.ModeNew, dup, m.cfg.Edit.Preview)
+						m.edit = &e
+						m.rebuildComponentSizes()
+						m.mode = ModeEditor
+						return m, m.edit.Init()
 					}
 				}
 			}
@@ -1423,7 +1470,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.list, cmd = m.list.Update(msg)
 		return m, cmd
-	case ModePalette:
+	case ModePalette, ModeProjectSwitcher:
 		var cmd tea.Cmd
 		m.pal, cmd = m.pal.Update(msg)
 		return m, cmd
@@ -1572,7 +1619,7 @@ func (m *Model) renderMainUI() string {
 		body = m.list.View()
 	case ModeDetail:
 		body = m.det.View()
-	case ModePalette:
+	case ModePalette, ModeProjectSwitcher:
 		body = m.pal.View()
 	case ModeHelp:
 		body = m.hlp.View()
@@ -1900,7 +1947,18 @@ func (m *Model) renderHeader() string {
 	taskCountPill := leftCap + pillStyle.Render(count) + rightCap
 	countRow := lipgloss.PlaceHorizontal(innerW, lipgloss.Center, taskCountPill)
 
-	headerContent := lipgloss.JoinVertical(lipgloss.Center, "", logo, "", tabRow, "", countRow)
+	logoRow := lipgloss.PlaceHorizontal(innerW, lipgloss.Center, logo)
+	if m.activeProject != "" {
+		projectPill := lipgloss.NewStyle().
+			Foreground(m.s.Theme.Accent).
+			Bold(true).
+			Padding(0, 1).
+			Render("PROJECT: " + m.activeProject)
+		logoRow = lipgloss.JoinHorizontal(lipgloss.Center, logo, "  ", projectPill)
+		logoRow = lipgloss.PlaceHorizontal(innerW, lipgloss.Center, logoRow)
+	}
+
+	headerContent := lipgloss.JoinVertical(lipgloss.Center, "", logoRow, "", tabRow, "", countRow)
 	return m.s.Header.Width(m.width).Render(headerContent)
 }
 
@@ -1970,6 +2028,8 @@ func (m *Model) renderFooter() string {
 				left = " " + makePill("ctrl+s save") + sep + makePill("ctrl+p preview") + sep + makePill("esc cancel") + sep + makePill("tab nav")
 			case ModePalette:
 				left = " " + makePill("enter select") + sep + makePill("esc/p cancel") + sep + makePill(styles.IconUp+styles.IconDown+" nav")
+			case ModeProjectSwitcher:
+				left = " " + makePill("enter select") + sep + makePill("esc cancel") + sep + makePill(styles.IconUp+styles.IconDown+" nav")
 			case ModeHelp:
 				left = " " + makePill("esc/q/"+fk(m.km.Help)+" cancel")
 			case ModeThemeMenu:
@@ -1981,6 +2041,7 @@ func (m *Model) renderFooter() string {
 			default:
 				items := []string{
 					makePill(fk(m.km.Palette) + " " + styles.IconPalette + "palette"),
+					makePill(fk(m.km.ProjectSwitcher) + " project"),
 					makePill(fk(m.km.NewTask) + " " + styles.IconNew + "new"),
 					makePill("f " + styles.IconTag + "tag"),
 					makePill(fk(m.km.ToggleStrike) + " " + styles.IconStrike + "done"),
@@ -2131,6 +2192,11 @@ func (m *Model) activeFilter() core.Filter {
 	v := m.views[m.activeIdx]
 	f := v.Filter
 
+	// Apply project filter
+	if m.activeProject != "" {
+		f.Project = m.activeProject
+	}
+
 	// Apply dynamic parameters if it's a built-in view that supports them
 	if v.ID == core.ViewTag {
 		tags := core.ParseTags(m.tagFilter.Value())
@@ -2178,6 +2244,16 @@ func (m *Model) loadTagsCmd() tea.Cmd {
 			return errMsg{Err: err}
 		}
 		return tagsLoadedMsg{Tags: tags}
+	}
+}
+
+func (m *Model) loadProjectsCmd() tea.Cmd {
+	return func() tea.Msg {
+		projects, err := m.svc.ListProjects(m.ctx)
+		if err != nil {
+			return errMsg{Err: err}
+		}
+		return projectsLoadedMsg{Projects: projects}
 	}
 }
 
@@ -2281,6 +2357,7 @@ func (m *Model) fetchOpenEditCmd(id string) tea.Cmd {
 func (m *Model) refreshStyles() {
 	m.s = styles.New(m.theme)
 	m.list = tasklist.New(m.s, m.cfg.App.VimMode, m.cfg.App.Animations, m.km, m.cfg.List.Fields.Due.Minimal)
+	m.list.SetTagsConfig(m.cfg.Tags.Highlight)
 	m.list.SetRightOrder(m.cfg.List.Order.Right)
 	m.list.SetTasks(m.tasks)
 	m.list.SetAllTasks(m.all)
@@ -2365,10 +2442,37 @@ func (m *Model) rebuildPaletteIndex() {
 		taskItems = append(taskItems, search.Item{ID: t.ID, Kind: search.KindTask, Title: t.Title, Desc: t.Description, Hint: hint})
 	}
 	m.palTasksIdx = search.NewIndex(taskItems)
+	m.rebuildProjectsIndex()
 	m.applyPaletteIndex()
 }
 
+func (m *Model) rebuildProjectsIndex() {
+	// Filter projects to only include those with tasks
+	projectHasTasks := make(map[string]bool)
+	for _, task := range m.all {
+		if task.Project != "" {
+			projectHasTasks[task.Project] = true
+		}
+	}
+
+	items := make([]search.Item, 0, len(m.projects)+1)
+	items = append(items, search.Item{ID: "", Kind: search.KindProject, Title: "<All Projects>", Hint: "show all tasks"})
+	for _, p := range m.projects {
+		// Only add project to switcher if it has tasks
+		if projectHasTasks[p] {
+			items = append(items, search.Item{ID: p, Kind: search.KindProject, Title: p, Hint: "project"})
+		}
+	}
+	m.palProjectsIdx = search.NewIndex(items)
+}
+
 func (m *Model) applyPaletteIndex() {
+	if m.mode == ModeProjectSwitcher {
+		if m.palProjectsIdx != nil {
+			m.pal.SetIndex(m.palProjectsIdx)
+		}
+		return
+	}
 	if m.palTasksOnly {
 		if m.palTasksIdx != nil {
 			m.pal.SetIndex(m.palTasksIdx)
@@ -2400,7 +2504,7 @@ func utilTruncate(s string, w int) string {
 func (m *Model) runCommand(id string) tea.Cmd {
 	switch id {
 	case "cmd:new":
-		e := editor.New(m.s, editor.ModeNew, core.Task{Status: core.StatusTodo, Priority: core.P1})
+		e := editor.New(m.s, editor.ModeNew, core.Task{Status: core.StatusTodo, Priority: core.P1}, false)
 		m.edit = &e
 		m.rebuildComponentSizes()
 		m.mode = ModeEditor

@@ -6,6 +6,7 @@ type errMsg struct{ Err error }
 
 type tasksLoadedMsg struct{ Tasks []core.Task }
 type tagsLoadedMsg struct{ Tags []string }
+type projectsLoadedMsg struct{ Projects []string }
 type allTasksLoadedMsg struct{ Tasks []core.Task }
 
 type statusMsg struct {

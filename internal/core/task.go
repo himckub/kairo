@@ -66,6 +66,7 @@ type Task struct {
 	ID                string
 	Title             string
 	Description       string
+	Project           string
 	Tags              []string
 	Priority          Priority
 	Deadline          *time.Time
@@ -140,6 +141,7 @@ func (t Task) Validate() error {
 type TaskPatch struct {
 	Title             *string
 	Description       *string
+	Project           *string
 	Tags              *[]string
 	Priority          *Priority
 	Deadline          **time.Time
@@ -160,6 +162,9 @@ func (p TaskPatch) ApplyTo(t Task) Task {
 	}
 	if p.Description != nil {
 		t.Description = *p.Description
+	}
+	if p.Project != nil {
+		t.Project = *p.Project
 	}
 	if p.Tags != nil {
 		t.Tags = append([]string(nil), (*p.Tags)...)
@@ -205,6 +210,7 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		ID                string    `json:"id"`
 		Title             string    `json:"title"`
 		Description       string    `json:"description,omitempty"`
+		Project           string    `json:"project,omitempty"`
 		Tags              []string  `json:"tags,omitempty"`
 		Priority          int       `json:"priority"`
 		Deadline          *string   `json:"deadline,omitempty"`
@@ -244,6 +250,7 @@ func (t Task) MarshalJSON() ([]byte, error) {
 		ID:                t.ID,
 		Title:             t.Title,
 		Description:       t.Description,
+		Project:           t.Project,
 		Tags:              t.NormalizedTags(),
 		Priority:          int(t.Priority.Clamp()),
 		Deadline:          d,
@@ -266,6 +273,7 @@ func (t *Task) UnmarshalJSON(data []byte) error {
 		ID                string    `json:"id"`
 		Title             string    `json:"title"`
 		Description       string    `json:"description,omitempty"`
+		Project           string    `json:"project,omitempty"`
 		Tags              []string  `json:"tags,omitempty"`
 		Priority          int       `json:"priority"`
 		Deadline          *string   `json:"deadline,omitempty"`
@@ -288,6 +296,7 @@ func (t *Task) UnmarshalJSON(data []byte) error {
 	t.ID = w.ID
 	t.Title = w.Title
 	t.Description = w.Description
+	t.Project = w.Project
 	t.Tags = w.Tags
 	t.Priority = Priority(w.Priority).Clamp()
 	t.Status = w.Status
