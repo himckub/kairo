@@ -80,9 +80,9 @@ func New(s styles.Styles, mode Mode, t core.Task) Model {
 		in.PromptStyle = s.Accent.Bold(true)
 		in.TextStyle = s.Text
 
-		// Hide the cursor to avoid rendering artifacts, as we use background
-		// highlighting for focus indication.
-		in.Cursor.SetMode(cursor.CursorHide)
+		// Show a blinking cursor for better cursor position visibility, combined with
+		// background highlighting for improved focus indication.
+		in.Cursor.SetMode(cursor.CursorBlink)
 	}
 	ti := textinput.New()
 	ti.Prompt = ""
@@ -330,13 +330,19 @@ func (m Model) View() string {
 
 	// Helper for rendering structured fields
 	renderField := func(icon, label string, input string, focused bool) string {
-		s := lipgloss.NewStyle().Padding(0, 1)
+		s := lipgloss.NewStyle()
 
 		// Style prompt icon and label based on focus
 		promptStyle := m.styles.Muted
 		if focused {
 			promptStyle = promptStyle.Foreground(m.styles.Theme.Accent).Bold(true)
-			input = lipgloss.NewStyle().Background(m.styles.Theme.Border).Render(input)
+			// Use Overlay color for better focus visibility, with bold accent border for extra emphasis
+			input = lipgloss.NewStyle().
+				Background(m.styles.Theme.Overlay).
+				Foreground(m.styles.Theme.Accent).
+				Bold(true).
+				Padding(0, 1).
+				Render(input)
 		}
 
 		prompt := lipgloss.JoinHorizontal(lipgloss.Left, icon, label)

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3]
+
+### Fixed
+- Column alignment broken by selector `|` icon only rendering on active task: now renders dim pipe for all tasks, bright/bold for selected task
+- Due field variable width causing column misalignment in list view: now uses fixed 16-character width for consistent alignment
+- Edit mode active input field background highlight now uses more prominent Overlay color for improved visibility
+
+### Improved
+- Edit mode cursor position visibility: enabled visible blinking cursor combined with enhanced background highlighting for active input fields
+- All input fields in edit mode now have consistent high-visibility focus indication
+
 ## [1.5.2]
 
 ### Added

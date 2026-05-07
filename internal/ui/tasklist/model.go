@@ -438,14 +438,14 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 		statusStyle = lipgloss.NewStyle().Foreground(m.styles.Theme.Good).Background(rowBg)
 	}
 
-	// Selection indicator — only the thick left border
-	indicator := lipgloss.NewStyle().Background(rowBg).Render("")
+	// Selection indicator — render only for selected task
+	indicator := " "
 	if selected {
 		indicator = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(m.styles.Theme.Accent).
+			Foreground(m.styles.Theme.Accent).
 			Background(rowBg).
-			Render(" ")
+			Bold(true).
+			Render("│")
 	}
 
 	// Hierarchy indentation and icons
@@ -516,7 +516,7 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 		// Clean left-to-right strikethrough wipe
 		title = m.renderStrikeWipe(titleText, animProgress, rowBg)
 	} else {
-		titleWidth := max(20, m.width-40-lipgloss.Width(indent)-lipgloss.Width(expandIcon))
+		titleWidth := max(20, m.width-40-lipgloss.Width(indicator)-lipgloss.Width(indent)-lipgloss.Width(expandIcon))
 		title = titleStyle.Render(truncate(titleText, titleWidth))
 	}
 
@@ -539,11 +539,25 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 			if t.Deadline != nil {
 				now := time.Now()
 				deadText := humanDeadline(*t.Deadline, now)
-				deadStyle := m.styles.Muted
+				deadStyleColor := m.styles.Theme.Muted
 				if t.Deadline.Before(now) && t.Status != core.StatusDone {
-					deadStyle = lipgloss.NewStyle().Foreground(m.styles.Theme.Bad).Background(rowBg)
+					deadStyleColor = m.styles.Theme.Bad
 				}
-				rightParts = append(rightParts, deadStyle.Render(styles.IconDeadline+deadText))
+
+				dueContent := styles.IconDeadline + deadText
+
+				// Create pill badge for due date
+				badge := m.styles.BadgeMuted.
+					Background(m.styles.Theme.Muted).
+					Foreground(m.styles.Theme.Bg).
+					Padding(0, 1)
+
+				pill := lipgloss.JoinHorizontal(lipgloss.Left,
+					m.styles.TagLeft.Foreground(deadStyleColor).Render(),
+					badge.Background(deadStyleColor).Render(dueContent),
+					m.styles.TagRight.Foreground(deadStyleColor).Render(),
+				)
+				rightParts = append(rightParts, pill)
 			}
 		case "tags":
 			if len(t.Tags) > 0 {
@@ -566,7 +580,7 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 		}
 	}
 
-	right := strings.Join(rightParts, lipgloss.NewStyle().Background(rowBg).Render("  "))
+	right := strings.Join(rightParts, " ")
 
 	// Use render.BarLine: fills the gap between left and right with bg-styled spaces.
 	// Subtract 2 for the Padding(0,1) applied by rowStyle below.
