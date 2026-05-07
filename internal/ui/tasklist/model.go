@@ -50,16 +50,19 @@ type Model struct {
 	DeletingTaskID string
 	DeleteProgress float64
 
+	DueMinimal bool
+
 	lastKey string // For tracking key sequences like 'gg'
 }
 
-func New(s styles.Styles, vimMode bool, animations bool, km keymap.Keymap) Model {
+func New(s styles.Styles, vimMode bool, animations bool, km keymap.Keymap, dueMinimal bool) Model {
 	return Model{
 		styles:     s,
 		vimMode:    vimMode,
 		Animations: animations,
 		km:         km,
 		rightOrder: []string{"tags", "due", "priority"},
+		DueMinimal: dueMinimal,
 	}
 }
 
@@ -279,6 +282,21 @@ func (m Model) View() string {
 	start := clamp(m.sel-visible/2, 0, max(0, len(m.items)-visible))
 	end := min(len(m.items), start+visible)
 
+	maxDueWidth := 0
+	if m.DueMinimal {
+		for i := start; i < end; i++ {
+			item := m.items[i]
+			if item.Deadline != nil {
+				d := humanDeadline(*item.Deadline, time.Now())
+				d = formatDue(d, true)
+				w := lipgloss.Width(styles.IconDeadline + d)
+				if w > maxDueWidth {
+					maxDueWidth = w
+				}
+			}
+		}
+	}
+
 	lines := make([]string, 0, visible)
 	for i := start; i < end; i++ {
 		item := m.items[i]
@@ -298,7 +316,7 @@ func (m Model) View() string {
 			}
 		}
 
-		line := m.renderRow(item, i == m.sel)
+		line := m.renderRow(item, i == m.sel, maxDueWidth)
 		lines = append(lines, line)
 	}
 
@@ -392,7 +410,7 @@ func (m Model) renderEmpty() string {
 		Align(lipgloss.Center, lipgloss.Center).
 		Render(m.styles.Overlay.Width(boxWidth).Padding(2).Render(dashboard))
 }
-func (m Model) renderRow(item TaskItem, selected bool) string {
+func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 	t := item.Task
 	// Compute animation progress for strike (completion toggle).
 	// Progress is always clamped to [0, 1] — no overshoot.
@@ -544,7 +562,7 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 					deadStyleColor = m.styles.Theme.Bad
 				}
 
-				dueContent := styles.IconDeadline + deadText
+				dueContent := styles.IconDeadline + formatDue(deadText, m.DueMinimal)
 
 				// Create pill badge for due date
 				badge := m.styles.BadgeMuted.
@@ -557,6 +575,11 @@ func (m Model) renderRow(item TaskItem, selected bool) string {
 					badge.Background(deadStyleColor).Render(dueContent),
 					m.styles.TagRight.Foreground(deadStyleColor).Render(),
 				)
+
+				if m.DueMinimal && maxDueWidth > 0 {
+					// container width = max content width + padding (2) + caps (2)
+					pill = lipgloss.NewStyle().Width(maxDueWidth + 4).Align(lipgloss.Left).Render(pill)
+				}
 				rightParts = append(rightParts, pill)
 			}
 		case "tags":
@@ -671,6 +694,13 @@ func humanDeadline(t time.Time, now time.Time) string {
 		return fmt.Sprintf("%dh", int(d.Hours()))
 	}
 	return fmt.Sprintf("%dd", int(d.Hours()/24))
+}
+
+func formatDue(due string, minimal bool) string {
+	if !minimal {
+		return due
+	}
+	return strings.ReplaceAll(due, "overdue", "OD")
 }
 
 func clamp(x, lo, hi int) int {

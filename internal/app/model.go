@@ -240,7 +240,7 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 		tagFilterInput:         tagInput,
 		RainbowAnimationOffset: 0,
 	}
-	m.list = tasklist.New(m.s, cfg.App.VimMode, cfg.App.Animations, m.km)
+	m.list = tasklist.New(m.s, cfg.App.VimMode, cfg.App.Animations, m.km, cfg.List.Fields.Due.Minimal)
 	m.list.SetRightOrder(cfg.List.Order.Right)
 	m.pal = palette.New(m.s)
 	m.det = detail.New(m.s)
@@ -2280,7 +2280,7 @@ func (m *Model) fetchOpenEditCmd(id string) tea.Cmd {
 
 func (m *Model) refreshStyles() {
 	m.s = styles.New(m.theme)
-	m.list = tasklist.New(m.s, m.cfg.App.VimMode, m.cfg.App.Animations, m.km)
+	m.list = tasklist.New(m.s, m.cfg.App.VimMode, m.cfg.App.Animations, m.km, m.cfg.List.Fields.Due.Minimal)
 	m.list.SetRightOrder(m.cfg.List.Order.Right)
 	m.list.SetTasks(m.tasks)
 	m.list.SetAllTasks(m.all)

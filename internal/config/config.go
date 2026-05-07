@@ -23,7 +23,16 @@ type Config struct {
 }
 
 type ListConfig struct {
-	Order ListOrderConfig `toml:"order"`
+	Order  ListOrderConfig  `toml:"order"`
+	Fields ListFieldsConfig `toml:"fields"`
+}
+
+type ListFieldsConfig struct {
+	Due DueFieldConfig `toml:"due"`
+}
+
+type DueFieldConfig struct {
+	Minimal bool `toml:"minimal"`
 }
 
 type ListOrderConfig struct {
@@ -151,6 +160,11 @@ func Default() Config {
 		List: ListConfig{
 			Order: ListOrderConfig{
 				Right: []string{"tags", "due", "priority"},
+			},
+			Fields: ListFieldsConfig{
+				Due: DueFieldConfig{
+					Minimal: true,
+				},
 			},
 		},
 		Theme: ThemeConfig{

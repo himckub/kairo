@@ -218,6 +218,11 @@ right = ["tags", "due", "priority"]
 Valid values for `right` are: `tags`, `due`, `priority`.
 
 ### Task Fields
+*   **Minimal Due Mode**: Abbreviate "overdue" to "OD" and use a fixed-width column for consistent task list alignment. Enabled by default.
+    ```toml
+    [list.fields.due]
+    minimal = true
+    ```
 *   **wait_until**: Hide a task from the task list until the specified datetime. If the task is recurring, new instances are not generated/shown until `wait_until` has passed. Format: `yyyy-MM-dd HH:mm`.
 *   **until**: Stop generating new recurring instances after the specified datetime. Existing instances may remain visible. Format: `yyyy-MM-dd HH:mm`.
 

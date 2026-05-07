@@ -57,6 +57,7 @@ func (m *Model) rebuildItems() {
 		{"Auto Push (Git)", "auto_push", "bool", m.cfg.Sync.AutoPush},
 		{"MCP Server Enabled", "mcp_enabled", "bool", m.cfg.App.MCPEnabled},
 		{"Animations", "animations", "bool", m.cfg.App.Animations},
+		{"Minimal Due Text", "minimal_due", "bool", m.cfg.List.Fields.Due.Minimal},
 		{"AI Model (←/→)", "ai_model", "enum", m.cfg.App.AIModel},
 		{"Gemini API Key", "gemini_api_key", "string", m.cfg.App.GeminiAPIKey},
 		{"AI Assistant Shortcut", "ai_toggle", "string", m.cfg.Keymap.AIPanelToggle},
@@ -186,6 +187,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 					m.cfg.App.MCPEnabled = val
 				case "animations":
 					m.cfg.App.Animations = val
+				case "minimal_due":
+					m.cfg.List.Fields.Due.Minimal = val
 				}
 				m.rebuildItems()
 				// Save config immediately and notify app

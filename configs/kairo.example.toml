@@ -33,6 +33,11 @@ onboarding_completed = false
 # Valid values: "tags", "due", "priority"
 right = ["tags", "due", "priority"]
 
+[list.fields.due]
+# Enable minimal mode for the due date field (default: true).
+# Abbreviates "overdue" to "OD" and aligns the column.
+minimal = true
+
 [theme]
 # Any field set here overrides the built-in theme colors.
 # bg = "#0B0F14"

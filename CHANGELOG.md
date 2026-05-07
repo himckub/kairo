@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4]
+
+### Added
+- Minimal Due Text Mode: A new toggleable field mode that abbreviates "overdue" to "OD" and uses a fixed-width column for perfect task list alignment.
+- Configuration for due field: Added `[list.fields.due] minimal = true` to `config.toml`.
+- Settings Toggle: Added "Minimal Due Text" toggle to the settings menu (ctrl+s) for live configuration.
+
+### Improved
+- Task List Alignment: When minimal mode is enabled, the due column width is automatically calculated across all visible tasks to ensure consistent left-alignment.
+
 ## [1.5.3]
 
 ### Fixed
