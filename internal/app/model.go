@@ -22,6 +22,7 @@ import (
 	"github.com/programmersd21/kairo/internal/buildinfo"
 	"github.com/programmersd21/kairo/internal/config"
 	"github.com/programmersd21/kairo/internal/core"
+	"github.com/programmersd21/kairo/internal/history"
 	"github.com/programmersd21/kairo/internal/plugins"
 	"github.com/programmersd21/kairo/internal/search"
 	"github.com/programmersd21/kairo/internal/service"
@@ -163,6 +164,7 @@ type Model struct {
 	updateAvailable *updateAvailableMsg
 
 	syncEngine *ksync.Engine
+	hist       *history.History
 
 	plugHost *plugins.Host
 	plugCh   chan struct{}
@@ -262,9 +264,12 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 	m.aiChan = make(chan ai_panel.AIChunkMsg, 100)
 	m.aiKey = cfg.App.GeminiAPIKey
 	if m.aiKey != "" {
-		m.aiClient, _ = ai.NewClient(ctx, m.aiKey, cfg.App.AIModel)
+		m.aiClient, _ = ai.NewClient(ctx, m.aiKey, cfg.App.GeminiAPIKey)
 		ai.SetService(svc)
 	}
+
+	// Initialize undo/redo history.
+	m.hist = history.New(100)
 
 	// Config watcher.
 	m.configCh = make(chan config.Config, 8)
@@ -456,7 +461,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusText = x.Message
 		m.isErr = x.IsErr
 		m.statusID++
-		return m, tea.Batch(m.listenStatusCmd(), m.clearStatusCmd(m.statusID))
+		var cmds []tea.Cmd
+		cmds = append(cmds, m.listenStatusCmd(), m.clearStatusCmd(m.statusID))
+		if x.Refresh {
+			m.rebuildComponentSizes()
+			cmds = append(cmds, m.refreshCmd())
+		}
+		return m, tea.Batch(cmds...)
 
 	case clearStatusMsg:
 		if x.ID == m.statusID {
@@ -790,11 +801,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.creationStarted = time.Now()
 		m.creationDuration = 800 * time.Millisecond
 		m.animationGen++
+		m.rebuildComponentSizes()
 		return m, tea.Batch(
-			m.loadTagsCmd(),
-			m.loadProjectsCmd(),
-			m.loadTasksCmd(),
-			m.loadAllTasksCmd(),
+			m.refreshCmd(),
 			m.syncIfEnabledCmd(),
 			func() tea.Cmd {
 				if m.cfg.App.Animations {
@@ -805,7 +814,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 	case taskUpdatedMsg:
-		return m, tea.Batch(m.loadTagsCmd(), m.loadProjectsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
+		m.rebuildComponentSizes()
+		return m, m.refreshCmd()
 
 	case string: // AI prompt from panel
 		return m, tea.Batch(m.startAIStreamCmd(x), m.listenAICmd())
@@ -824,7 +834,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusText = "AI updated database"
 			m.isErr = false
 			m.statusID++
-			cmds = append(cmds, m.loadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd(), m.clearStatusCmd(m.statusID))
+			cmds = append(cmds, m.refreshCmd(), m.syncIfEnabledCmd(), m.clearStatusCmd(m.statusID))
 		}
 		return m, tea.Batch(cmds...)
 
@@ -835,7 +845,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case taskDeletedMsg:
 		// Deleting a task can orphan tags; prune & reload tags immediately so
 		// tag-related UI/palette stays accurate without requiring a restart.
-		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.loadTasksCmd(), m.loadAllTasksCmd(), m.syncIfEnabledCmd())
+		m.rebuildComponentSizes()
+		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.refreshCmd(), m.syncIfEnabledCmd())
 
 	case rainbowTickMsg:
 		if !m.cfg.App.Rainbow {
@@ -986,12 +997,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch km.String() {
 			case "y", "enter":
 				selected := m.list.GetSelectedTasks()
-				var cmds []tea.Cmd
+				var ids []string
 				for _, t := range selected {
-					cmds = append(cmds, m.deleteTaskCmd(t.ID))
+					ids = append(ids, t.ID)
 				}
 				m.mode = ModeList
-				return m, tea.Batch(cmds...)
+				return m, m.deleteTasksCmd(ids)
 			case "a":
 				m.mode = ModeList
 				var animCmd tea.Cmd
@@ -1078,7 +1089,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					animCmd = m.viewTransitionTickCmd()
 				}
 				return m, tea.Batch(m.loadTasksCmd(), animCmd)
-			case "ctrl+u":
+			case "ctrl+z":
 				// Clear the entire input
 				m.tagFilterInput.SetValue("")
 				return m, nil
@@ -1124,6 +1135,29 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if keymapMatch(m.km.Quit, km) {
 				m.mode = ModeConfirmQuit
 				return m, nil
+			}
+
+			if keymapMatch(m.km.Undo, km) {
+				op := m.hist.Undo()
+				if op == nil {
+					u, r := m.hist.Len()
+					m.statusText = fmt.Sprintf("Nothing to undo (stack: %d/%d)", u, r)
+					m.isErr = false
+					m.statusID++
+					return m, tea.Batch(m.listenStatusCmd(), m.clearStatusCmd(m.statusID))
+				}
+				return m, m.undoCmd(op)
+			}
+			if keymapMatch(m.km.Redo, km) {
+				op := m.hist.Redo()
+				if op == nil {
+					u, r := m.hist.Len()
+					m.statusText = fmt.Sprintf("Nothing to redo (stack: %d/%d)", u, r)
+					m.isErr = false
+					m.statusID++
+					return m, tea.Batch(m.listenStatusCmd(), m.clearStatusCmd(m.statusID))
+				}
+				return m, m.redoCmd(op)
 			}
 
 			if km.String() == "ctrl+w" {
@@ -2008,7 +2042,7 @@ func (m *Model) renderFooter() string {
 		quitPill := quitLeft + m.s.BadgeQuit.Render("QUIT?") + quitRight
 		left = " " + quitPill + " " + makePill("y/enter confirm") + sep + makePill("n/esc cancel")
 	case ModeTagFilter:
-		left = " " + makePill("enter apply") + sep + makePill("esc cancel") + sep + makePill("ctrl+u clear")
+		left = " " + makePill("enter apply") + sep + makePill("esc cancel") + sep + makePill("ctrl+z clear")
 	default:
 		// Only show help pills if ShowHelp is enabled in config
 		if m.cfg.App.ShowHelp {
@@ -2257,6 +2291,15 @@ func (m *Model) loadProjectsCmd() tea.Cmd {
 	}
 }
 
+func (m *Model) refreshCmd() tea.Cmd {
+	return tea.Batch(
+		m.loadTasksCmd(),
+		m.loadAllTasksCmd(),
+		m.loadTagsCmd(),
+		m.loadProjectsCmd(),
+	)
+}
+
 func (m *Model) pruneAndLoadTagsCmd() tea.Cmd {
 	return func() tea.Msg {
 		_ = m.svc.Prune(m.ctx)
@@ -2274,36 +2317,126 @@ func (m *Model) createTaskCmd(t core.Task) tea.Cmd {
 		if err != nil {
 			return errMsg{Err: err}
 		}
+		m.hist.Record(history.CreateOperation(history.OpCreate, "", []string{created.ID}, nil, []core.Task{created}))
 		return taskCreatedMsg{Task: created}
 	}
 }
 
 func (m *Model) updateTaskCmd(id string, p core.TaskPatch) tea.Cmd {
 	return func() tea.Msg {
+		before, err := m.svc.GetByID(m.ctx, id)
+		if err != nil {
+			return errMsg{Err: err}
+		}
 		updated, err := m.svc.Update(m.ctx, id, p)
 		if err != nil {
 			return errMsg{Err: err}
 		}
+
+		opType := history.OpUpdate
+		if p.Status != nil {
+			opType = history.OpToggleStatus
+		}
+		m.hist.Record(history.CreateOperation(opType, "", []string{id}, []core.Task{before}, []core.Task{updated}))
 		return taskUpdatedMsg{Task: updated}
 	}
 }
 
 func (m *Model) deleteTaskCmd(id string) tea.Cmd {
 	return func() tea.Msg {
+		before, err := m.svc.GetByID(m.ctx, id)
+		if err != nil {
+			return errMsg{Err: err}
+		}
 		if err := m.svc.Delete(m.ctx, id); err != nil {
 			return errMsg{Err: err}
 		}
+		m.hist.Record(history.CreateOperation(history.OpDelete, "", []string{id}, []core.Task{before}, nil))
 		return taskDeletedMsg{ID: id}
 	}
 }
 
 func (m *Model) deleteAllTasksCmd() tea.Cmd {
 	return func() tea.Msg {
+		before, _ := m.svc.ListAll(m.ctx)
+		var ids []string
+		for _, t := range before {
+			ids = append(ids, t.ID)
+		}
 		if err := m.svc.DeleteAll(m.ctx); err != nil {
 			return errMsg{Err: err}
 		}
+		m.hist.Record(history.CreateOperation(history.OpBulkDelete, "Delete All", ids, before, nil))
 		return taskUpdatedMsg{} // Trigger reload
 	}
+}
+
+func (m *Model) undoCmd(op *history.Operation) tea.Cmd {
+	return func() tea.Msg {
+		if err := m.applyOperation(op, true); err != nil {
+			return errMsg{Err: err}
+		}
+
+		return statusMsg{
+			Message: fmt.Sprintf("Undone: %s", history.GetOperationDescription(op)),
+			IsErr:   false,
+			Refresh: true,
+		}
+	}
+}
+
+func (m *Model) redoCmd(op *history.Operation) tea.Cmd {
+	return func() tea.Msg {
+		if err := m.applyOperation(op, false); err != nil {
+			return errMsg{Err: err}
+		}
+
+		return statusMsg{
+			Message: fmt.Sprintf("Redone: %s", history.GetOperationDescription(op)),
+			IsErr:   false,
+			Refresh: true,
+		}
+	}
+}
+
+func (m *Model) applyOperation(op *history.Operation, undo bool) error {
+	switch op.Type {
+	case history.OpCreate:
+		if undo {
+			return m.svc.DeleteTasks(m.ctx, op.TaskIDs)
+		} else {
+			for _, t := range op.After {
+				if err := m.svc.UpsertTask(m.ctx, t); err != nil {
+					return err
+				}
+			}
+		}
+	case history.OpDelete, history.OpBulkDelete:
+		if undo {
+			for _, t := range op.Before {
+				if err := m.svc.UpsertTask(m.ctx, t); err != nil {
+					return err
+				}
+			}
+		} else {
+			for _, id := range op.TaskIDs {
+				if err := m.svc.Delete(m.ctx, id); err != nil {
+					return err
+				}
+			}
+		}
+	default:
+		tasks := op.After
+		if undo {
+			tasks = op.Before
+		}
+		for _, t := range tasks {
+			if err := m.svc.UpsertTask(m.ctx, t); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (m *Model) strikeAnimationTickCmd(taskID string) tea.Cmd {

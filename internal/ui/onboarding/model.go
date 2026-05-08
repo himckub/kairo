@@ -185,7 +185,7 @@ func (m Model) View() string {
 		action = "Press [CTRL+S] for Settings"
 	case StepFinish:
 		title = "YOU'RE ALL SET"
-		body = "You're now proficient with Kairo! Explore more via the palette [CTRL+P].\n\n(Tip: Relaunch tour anytime with [CTRL+D])"
+		body = "You're now proficient with Kairo! Explore more via the palette [CTRL+P].\n\n(Tip: Relaunch tour anytime with [CTRL+W])"
 		action = "Press [ENTER] to finish"
 	}
 

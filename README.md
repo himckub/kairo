@@ -92,10 +92,13 @@ Press `s` to open a next-gen "Command Center". Visualize your **Productivity DNA
 Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language, including assigning to specific projects. Invisible until you need it.
 
 ### 🎨 Beautiful by Default
-32 built-in themes with edge-to-edge background coverage. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`). Cinematic create/complete/delete animations — or disable them entirely in `config.toml`.
+32 built-in themes with edge-to-edge background coverage. Live switching with `t`. Bento-style layout. Real-time Markdown preview (`ctrl+p`), with configurable default state in `config.toml` under `[edit]`. Cinematic create/complete/delete animations — or disable them entirely in `config.toml`.
 
 ### 🧩 Extensible to the Core
 A Lua plugin system hooks into task events. A headless CLI API enables full scripting. An MCP server opens Kairo to AI agents — with complete support for recurring schedules and nested hierarchies.
+
+### ↩️ Undo & Redo
+Kairo now tracks your every move with a local history engine. Instantly reverse mistakes with `ctrl+z` or re-apply undone actions with `ctrl+y`. Supports task creation, deletion (including bulk), editing, and status changes. Everything is synchronized live with the database.
 
 ### 🎨 Tag Highlighting
 Color-code your tags directly in `config.toml`. Supports hex codes or theme-aware `ui-*` aliases (e.g., `ui-accent`).
@@ -129,6 +132,8 @@ diy     = "bg=ui-accent"
 | `ctrl+s` | Settings |
 | `x` | Import / Export |
 | `?` | Help |
+| `ctrl+z` | Undo last action |
+| `ctrl+y` | Redo last undone |
 | `ctrl+w` | Welcome tour |
 
 <div align="center">

@@ -164,6 +164,8 @@ type KeymapConfig struct {
 	AIPanelToggle   string `toml:"ai_panel_toggle"`
 	Stats           string `toml:"stats"`
 	ProjectSwitcher string `toml:"project_switcher"`
+	Undo            string `toml:"undo"`
+	Redo            string `toml:"redo"`
 }
 
 func Default() Config {
@@ -223,6 +225,9 @@ func Default() Config {
 			Enabled: true,
 			Dir:     "plugins",
 		},
+		Tags: TagsConfig{
+			Highlight: make(map[string]string),
+		},
 		Keymap: KeymapConfig{
 			Palette:         "ctrl+p",
 			TaskSearch:      "/",
@@ -254,6 +259,8 @@ func Default() Config {
 			AIPanelToggle:   "ctrl+a",
 			Stats:           "s",
 			ProjectSwitcher: "ctrl+e",
+			Undo:            "ctrl+z",
+			Redo:            "ctrl+y",
 		},
 	}
 }

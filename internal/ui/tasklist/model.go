@@ -233,6 +233,10 @@ func (m Model) GetSelectedTasks() []core.Task {
 	return selected
 }
 
+func (m Model) GetVisibleTasks() []TaskItem {
+	return m.items
+}
+
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch x := msg.(type) {
 	case tea.KeyMsg:
@@ -627,8 +631,9 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 				tagParts := []string{}
 				for _, tag := range t.Tags {
 					tagStyle := m.styles.Tag
-					if highlight, ok := m.TagsHighlight[tag]; ok {
-						tagStyle = styles.ParseTagStyle(highlight, m.styles.Theme)
+					if highlightStr, ok := m.TagsHighlight[tag]; ok {
+						highlight := styles.ParseTagHighlightString(highlightStr)
+						tagStyle = styles.ApplyTagHighlight(m.styles.Tag, highlight, m.styles.Theme)
 					}
 
 					tagContent := tagStyle.

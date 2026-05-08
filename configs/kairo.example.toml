@@ -36,6 +36,9 @@ auto_push = true
 enabled = true
 dir = "plugins"
 
+[edit]
+preview = true
+
 [keymap]
 palette = "ctrl+p"
 task_search = "/"
@@ -65,3 +68,5 @@ import_export = "x"
 ai_panel_toggle = "ctrl+a"
 stats = "s"
 project_switcher = "ctrl+e"
+undo = "ctrl+z"
+redo = "ctrl+y"

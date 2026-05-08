@@ -71,7 +71,7 @@ func (m Model) View() string {
 		{getK(m.km.ManagePlugins), styles.IconPlugin + "Manage plugins"},
 		{getK(m.km.Settings), "󰒓 " + "Settings menu"},
 		{getK(m.km.ImportExport), "󰛖 " + "Import / Export menu"},
-		{"ctrl+d", "󰙠 " + "Welcome tour"},
+		{"ctrl+w", "󰙠 " + "Welcome tour"},
 	}
 
 	if m.AIEnabled {
@@ -113,6 +113,8 @@ func (m Model) View() string {
 				{getK(m.km.EditTask), "󰏫 " + "Edit task"},
 				{getK(m.km.ToggleStrike), styles.IconStrike + "Toggle completion"},
 				{getK(m.km.DeleteTask), styles.IconDelete + "Delete task"},
+				{getK(m.km.Undo), "󰕌 " + "Undo (ctrl+z)"},
+				{getK(m.km.Redo), "󰕎 " + "Redo (ctrl+y)"},
 			},
 		},
 		{

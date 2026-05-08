@@ -41,6 +41,20 @@ type Keymap struct {
 	AIPanelToggle   key.Binding
 	Stats           key.Binding
 	ProjectSwitcher key.Binding
+	Undo            key.Binding
+	Redo            key.Binding
+}
+
+type HistoryListKeyMap struct {
+	Back    key.Binding
+	Confirm key.Binding
+}
+
+func GetHistoryListKeyMap() HistoryListKeyMap {
+	return HistoryListKeyMap{
+		Back:    key.NewBinding(key.WithKeys("esc", "q"), key.WithHelp("esc/q", "back")),
+		Confirm: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
+	}
 }
 
 func FromConfig(c config.KeymapConfig) Keymap {
@@ -77,6 +91,8 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		AIPanelToggle:   bind(c.AIPanelToggle, "ai", "toggle AI assistant"),
 		Stats:           bind(c.Stats, "stats", "open stats dashboard"),
 		ProjectSwitcher: bind(c.ProjectSwitcher, "projects", "switch project"),
+		Undo:            bind(c.Undo, "undo", "undo last action"),
+		Redo:            bind(c.Redo, "redo", "redo last undone action"),
 	}
 }
 func bind(keys, helpKey, helpDesc string) key.Binding {

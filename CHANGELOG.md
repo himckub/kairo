@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.5.6 (2026-05-08)
+
+### Added
+* **Safe Task Deletion**: Refactored task deletion to be context-aware and safer. 
+  * `t` → deletes tasks in current tab/filter.
+  * `a` → deletes all tasks database-wide with robust confirmation.
+* **Configurable Edit Preview**: Added `[edit] preview = true` to `config.toml` to toggle live markdown preview during task editing, matching consistency with the creation flow.
+* **Undo/Redo System**: Integrated a robust history engine that allows for seamless undo and redo of almost all task operations.
+  * Supports: Task creation, single/bulk deletion, editing, status toggles, priority changes, and deadline updates.
+  * **Live Synchronization**: Reversions are applied instantly to the database and reflected in the TUI without requiring a restart.
+* **Configurable Shortcuts**: Added `[history] undo = "ctrl+z"` and `[history] redo = "ctrl+y"` to `config.toml` to configure undo/redo shortcuts.
+
 ## [1.5.5]
 
 ### Added

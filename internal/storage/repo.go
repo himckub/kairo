@@ -187,6 +187,24 @@ func (r *Repository) DeleteAllTasks(ctx context.Context) error {
 	})
 }
 
+func (r *Repository) DeleteTasks(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	return withTx(ctx, r.db, func(tx *sql.Tx) error {
+		now := time.Now().UTC().UnixMilli()
+		holders := strings.TrimRight(strings.Repeat("?,", len(ids)), ",")
+		args := make([]any, len(ids)+2)
+		args[0] = now
+		args[1] = now
+		for i, id := range ids {
+			args[i+2] = id
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE tasks SET deleted_at_ms=?, updated_at_ms=? WHERE id IN (`+holders+`) AND deleted_at_ms IS NULL`, args...)
+		return err
+	})
+}
+
 type Tombstone struct {
 	ID        string
 	DeletedAt time.Time

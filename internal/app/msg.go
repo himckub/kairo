@@ -1,6 +1,8 @@
 package app
 
-import "github.com/programmersd21/kairo/internal/core"
+import (
+	"github.com/programmersd21/kairo/internal/core"
+)
 
 type errMsg struct{ Err error }
 
@@ -12,6 +14,7 @@ type allTasksLoadedMsg struct{ Tasks []core.Task }
 type statusMsg struct {
 	Message string
 	IsErr   bool
+	Refresh bool
 }
 
 type clearStatusMsg struct {
@@ -23,7 +26,10 @@ type taskUpdatedMsg struct{ Task core.Task }
 type taskDeletedMsg struct{ ID string }
 
 type openTaskMsg struct{ Task core.Task }
-type openEditMsg struct{ Task core.Task }
+type openEditMsg struct {
+	Task    core.Task
+	Preview bool
+}
 
 type pluginChangedMsg struct{}
 
