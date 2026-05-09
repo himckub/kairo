@@ -22,6 +22,7 @@ const (
 	StepAI
 	StepRecurring
 	StepAdvanced
+	StepFocus
 	StepUndoRedo
 	StepFinish
 )
@@ -119,6 +120,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case StepAdvanced:
 			if x.String() == "ctrl+s" {
+				m.step = StepFocus
+			}
+		case StepFocus:
+			if x.String() == "f" {
 				m.step = StepUndoRedo
 			}
 		case StepUndoRedo:
@@ -188,6 +193,10 @@ func (m Model) View() string {
 		title = "ADVANCED CONFIG"
 		body = "Fine-tune Kairo's behavior, themes, and keybindings in the Settings menu."
 		action = "Press [CTRL+S] for Settings"
+	case StepFocus:
+		title = "FOCUS ENGINE"
+		body = "Bridge planning and execution with the integrated Focus Engine. Track deep work sessions directly against your tasks."
+		action = "Press [F] to open Focus"
 	case StepUndoRedo:
 		title = "UNDO & REDO"
 		body = "Made a mistake? Instantly reverse any action with Undo [CTRL+Z] or re-apply with Redo [CTRL+Y]."
@@ -227,7 +236,7 @@ func (m Model) View() string {
 }
 
 func (m Model) renderProgress() string {
-	steps := 10
+	steps := 11
 	var b strings.Builder
 	for i := 0; i < steps; i++ {
 		if i == int(m.step) {

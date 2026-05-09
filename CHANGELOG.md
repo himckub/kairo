@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.6.0 (2026-05-09)
+
+### Added
+* **Integrated Focus Engine (Pomodoro)**: A native deep-work timer to bridge the gap between planning and execution.
+  * `f` → Open Focus Engine. If a task is selected in the list, it's automatically tracked.
+  * **Minimalist "Liquid Glass" UI**: A dedicated focus mode with countdown timer and state management (Focus/Break).
+  * **"DEEP WORK" Pulse**: Live visual feedback in the footer when a session is active.
+  * **Automatic Persistence**: Completed focus sessions are logged to the database and linked to specific tasks for future analytics.
+* **Onboarding Update**: Added Focus Engine training to the Welcome Tour.
+
+### Changed
+* **Keybinding Refinement**: To accommodate the Focus Engine, the "Filter by Tag" shortcut has been moved from `f` to `ctrl+f`.
+
 ## v1.5.6 (2026-05-08)
 
 ### Added

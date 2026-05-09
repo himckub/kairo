@@ -17,6 +17,14 @@ type Event struct {
 	Metadata  string
 }
 
+type FocusSession struct {
+	ID        string
+	TaskID    string
+	StartTime time.Time
+	EndTime   *time.Time
+	Duration  time.Duration
+}
+
 const (
 	EventTypeTaskCreated   = "task_created"
 	EventTypeTaskCompleted = "task_completed"

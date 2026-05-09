@@ -890,3 +890,58 @@ func (r *Repository) ListEvents(ctx context.Context) ([]core.Event, error) {
 	}
 	return out, rows.Err()
 }
+
+func (r *Repository) CreateFocusSession(ctx context.Context, s core.FocusSession) error {
+	var taskID any
+	if s.TaskID != "" {
+		taskID = s.TaskID
+	}
+	var endTime any
+	if s.EndTime != nil {
+		endTime = s.EndTime.UTC().UnixMilli()
+	}
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO focus_sessions (id, task_id, start_time_ms, end_time_ms, duration_ms)
+		VALUES (?, ?, ?, ?, ?)
+	`, s.ID, taskID, s.StartTime.UTC().UnixMilli(), endTime, int64(s.Duration/time.Millisecond))
+	return err
+}
+
+func (r *Repository) ListFocusSessions(ctx context.Context) ([]core.FocusSession, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT id, task_id, start_time_ms, end_time_ms, duration_ms
+		FROM focus_sessions
+		ORDER BY start_time_ms DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			_ = err
+		}
+	}()
+	var out []core.FocusSession
+	for rows.Next() {
+		var id string
+		var taskID sql.NullString
+		var startMs int64
+		var endMs sql.NullInt64
+		var durMs int64
+		if err := rows.Scan(&id, &taskID, &startMs, &endMs, &durMs); err != nil {
+			return nil, err
+		}
+		s := core.FocusSession{
+			ID:        id,
+			TaskID:    taskID.String,
+			StartTime: time.UnixMilli(startMs).UTC(),
+			Duration:  time.Duration(durMs) * time.Millisecond,
+		}
+		if endMs.Valid {
+			t := time.UnixMilli(endMs.Int64).UTC()
+			s.EndTime = &t
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
+}

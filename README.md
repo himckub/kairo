@@ -85,8 +85,10 @@ Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`
 ### 🔒 Your Data, Locally
 SQLite with WAL mode. Fully offline. Optional Git-backed sync — no backend, no account, no lock-in. Export to JSON, CSV, Markdown, or plain text on demand. Project organization is preserved in your database.
 
-### 🧭 Interactive Stats Dashboard
-Press `s` to open a next-gen "Command Center". Visualize your **Productivity DNA**, track real-time momentum, and get behavioral insights like "You complete 73% more tasks at night". Fully animated, keyboard-driven, and deeply insightful.
+### 🧭 Interactive Stats Dashboard & Focus Engine
+Press `s` to open a next-gen "Command Center". Visualize your **Productivity DNA**, track real-time momentum, and get behavioral insights. 
+
+**Focus Engine**: Press `f` to launch the native Pomodoro timer. Track deep work sessions directly against your active tasks. When a session is active, Kairo displays a "DEEP WORK" pulse in the footer.
 
 ### 🤖 AI — Optional, Never Intrusive
 Gemini integration (`gemini-3.1-flash-lite-preview` / `gemini-2.5-flash-lite` / `gemini-2.0-flash-lite`). Toggle with `ctrl+a`. Create and manage complex recurring tasks with natural language, including assigning to specific projects. Invisible until you need it.
@@ -123,7 +125,8 @@ diy     = "bg=accent"
 | `ctrl+d` | Duplicate task |
 | `Space` | Select task / Collapse subtasks |
 | `s` | Stats dashboard |
-| `f` | Filter by tag |
+| `f` | Focus engine |
+| `ctrl+f` | Filter by tag |
 | `ctrl+e` | Switch project |
 | `p` | Manage plugins |
 | `t` | Switch theme |
@@ -144,6 +147,7 @@ diy     = "bg=accent"
   <img src="screenshots/theme_menu.png" width="30%" />
   <img src="screenshots/dashboard.png" width="30%" />
   <img src="screenshots/welcome_tour.png" width="30%" />
+  <img src="screenshots/focus_mode.png" width="30%" />
 </div>
 
 ---

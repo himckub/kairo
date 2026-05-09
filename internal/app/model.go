@@ -31,6 +31,7 @@ import (
 	"github.com/programmersd21/kairo/internal/ui/ai_panel"
 	"github.com/programmersd21/kairo/internal/ui/detail"
 	"github.com/programmersd21/kairo/internal/ui/editor"
+	"github.com/programmersd21/kairo/internal/ui/focus"
 	"github.com/programmersd21/kairo/internal/ui/help"
 	"github.com/programmersd21/kairo/internal/ui/import_export_menu"
 	"github.com/programmersd21/kairo/internal/ui/keymap"
@@ -101,6 +102,7 @@ const (
 	ModeOnboarding
 	ModeStats
 	ModeProjectSwitcher
+	ModeFocus
 )
 
 type Model struct {
@@ -137,6 +139,7 @@ type Model struct {
 	set        settings.Model
 	iem        import_export_menu.Model
 	stats      stats.Model
+	foc        focus.Model
 	aiPanel    ai_panel.Model
 	aiClient   *ai.Client
 	aiKey      string
@@ -260,6 +263,7 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 	m.set = settings.New(m.s, cfg)
 	m.iem = import_export_menu.New(m.s)
 	m.stats = stats.New(m.s)
+	m.foc = focus.New(m.s)
 	m.aiPanel = ai_panel.New(m.s)
 	m.aiChan = make(chan ai_panel.AIChunkMsg, 100)
 	m.aiKey = cfg.App.GeminiAPIKey
@@ -813,6 +817,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}(),
 		)
 
+	case focus.SessionDoneMsg:
+		return m, m.createFocusSessionCmd(x.Session)
+
+	case focus.TickMsg:
+		var cmd tea.Cmd
+		m.foc, cmd = m.foc.Update(msg)
+		// If rainbow is off, we still want the pulse to animate,
+		// so we can increment the offset here too.
+		if !m.cfg.App.Rainbow {
+			m.RainbowAnimationOffset = (m.RainbowAnimationOffset + 1) % 7
+		}
+		return m, cmd
+
 	case taskUpdatedMsg:
 		m.rebuildComponentSizes()
 		return m, m.refreshCmd()
@@ -1343,10 +1360,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				switch {
-				case km.String() == "f":
+				case keymapMatch(m.km.ViewTag, km):
 					m.tagFilterInput.SetValue(m.tagFilter.Value())
 					m.tagFilterInput.Focus()
 					m.mode = ModeTagFilter
+					return m, nil
+				case keymapMatch(m.km.Focus, km):
+					if item, ok := m.list.Selected(); ok {
+						m.foc.Task = &item.Task
+					} else {
+						m.foc.Task = nil
+					}
+					m.mode = ModeFocus
 					return m, nil
 				case km.String() == " ":
 					// Handle space key for toggle collapse
@@ -1546,6 +1571,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.pm, cmd = m.pm.Update(msg)
 		return m, cmd
+	case ModeFocus:
+		if km, ok := msg.(tea.KeyMsg); ok {
+			if keymapMatch(m.km.Back, km) {
+				m.mode = ModeList
+				return m, nil
+			}
+		}
+		var cmd tea.Cmd
+		m.foc, cmd = m.foc.Update(msg)
+		return m, cmd
 	case ModeSettings:
 		var cmd tea.Cmd
 		m.set, cmd = m.set.Update(msg)
@@ -1647,6 +1682,7 @@ func (m *Model) renderMainUI() string {
 	m.tm.SetSize(mainW, availableHeight)
 	m.iem.SetSize(mainW, availableHeight)
 	m.stats.SetSize(mainW, availableHeight)
+	m.foc.SetSize(mainW, availableHeight)
 	if m.edit != nil {
 		m.edit.SetSize(mainW, availableHeight)
 	}
@@ -1688,6 +1724,8 @@ func (m *Model) renderMainUI() string {
 		}
 	case ModeImportExport:
 		body = m.iem.View()
+	case ModeFocus:
+		body = m.foc.View()
 	case ModeStats:
 		body = m.stats.View()
 	case ModeOnboarding:
@@ -2143,11 +2181,36 @@ func (m *Model) renderFooter() string {
 			}
 			versionText = fmt.Sprintf("Update: %s → %s", cur, lat)
 		}
+
+		focusPill := ""
+		if m.foc.Active && (m.mode == ModeList || m.mode == ModeFocus) {
+			pulseStyle := m.s.BadgeDoing
+			if m.foc.State == focus.StateShortBreak || m.foc.State == focus.StateLongBreak {
+				pulseStyle = m.s.BadgeGood
+			}
+
+			text := "DEEP WORK"
+			if m.foc.State != focus.StateFocus {
+				text = "BREAK"
+			}
+
+			// Pulse effect using RainbowAnimationOffset
+			if m.RainbowAnimationOffset%2 == 0 {
+				text = "• " + text + " •"
+			} else {
+				text = "  " + text + "  "
+			}
+
+			focusPill = m.s.TagLeft.Foreground(pulseStyle.GetBackground()).Render() +
+				pulseStyle.Render(text) +
+				m.s.TagRight.Foreground(pulseStyle.GetBackground()).Render() + " "
+		}
+
 		mcpStatus := ""
 		if m.mcpRunning {
 			mcpStatus = makePill("MCP "+styles.IconSuccess) + " "
 		}
-		right = mcpStatus + makePill(syncLogo+versionText) + " "
+		right = focusPill + mcpStatus + makePill(syncLogo+versionText) + " "
 	}
 
 	return render.BarLine(left, right, m.width, m.s.Theme.Bg)
@@ -2354,6 +2417,15 @@ func (m *Model) updateTaskCmd(id string, p core.TaskPatch) tea.Cmd {
 		}
 		m.hist.Record(history.CreateOperation(opType, "", []string{id}, []core.Task{before}, []core.Task{updated}))
 		return taskUpdatedMsg{Task: updated}
+	}
+}
+
+func (m *Model) createFocusSessionCmd(s core.FocusSession) tea.Cmd {
+	return func() tea.Msg {
+		if err := m.svc.Repo().CreateFocusSession(m.ctx, s); err != nil {
+			return errMsg{Err: err}
+		}
+		return nil
 	}
 }
 

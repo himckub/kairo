@@ -41,6 +41,7 @@ type Keymap struct {
 	AIPanelToggle   key.Binding
 	Stats           key.Binding
 	ProjectSwitcher key.Binding
+	Focus           key.Binding
 	Undo            key.Binding
 	Redo            key.Binding
 }
@@ -72,7 +73,7 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		ViewToday:     bind(c.ViewToday, "today", "today view"),
 		ViewUpcoming:  bind(c.ViewUpcoming, "upcoming", "upcoming view"),
 		ViewCompleted: bind(c.ViewCompleted, "completed", "completed view"),
-		ViewTag:       bind(c.ViewTag, "tag", "tag view"),
+		ViewTag:       key.NewBinding(key.WithKeys("ctrl+f"), key.WithHelp("ctrl+f", "tag view")),
 		ViewPriority:  bind(c.ViewPriority, "priority", "priority view"),
 
 		CycleTheme:      bind(c.CycleTheme, "theme", "theme menu"),
@@ -91,6 +92,7 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		AIPanelToggle:   bind(c.AIPanelToggle, "ai", "toggle AI assistant"),
 		Stats:           bind(c.Stats, "stats", "open stats dashboard"),
 		ProjectSwitcher: bind(c.ProjectSwitcher, "projects", "switch project"),
+		Focus:           key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "focus engine")),
 		Undo:            bind(c.Undo, "undo", "undo last action"),
 		Redo:            bind(c.Redo, "redo", "redo last undone action"),
 	}

@@ -87,6 +87,7 @@ type Styles struct {
 	// Badges & Status
 	Badge       lipgloss.Style
 	BadgeGood   lipgloss.Style
+	BadgeDoing  lipgloss.Style
 	BadgeWarn   lipgloss.Style
 	BadgeBad    lipgloss.Style
 	BadgeMuted  lipgloss.Style
@@ -153,9 +154,10 @@ func New(t theme.Theme) Styles {
 		RowDimmed:   muted.PaddingLeft(Spacing2),
 
 		Badge:       muted,
-		BadgeGood:   lipgloss.NewStyle().Foreground(t.Good),
-		BadgeWarn:   lipgloss.NewStyle().Foreground(t.Warn),
-		BadgeBad:    lipgloss.NewStyle().Foreground(t.Bad),
+		BadgeGood:   lipgloss.NewStyle().Foreground(t.Bg).Background(t.Good).Padding(0, Spacing1),
+		BadgeDoing:  lipgloss.NewStyle().Foreground(t.Bg).Background(t.Accent).Padding(0, Spacing1),
+		BadgeWarn:   lipgloss.NewStyle().Foreground(t.Bg).Background(t.Warn).Padding(0, Spacing1),
+		BadgeBad:    lipgloss.NewStyle().Foreground(t.Bg).Background(t.Bad).Padding(0, Spacing1),
 		BadgeMuted:  muted,
 		BadgeDelete: lipgloss.NewStyle().Foreground(t.Bg).Background(t.Bad).Padding(0, Spacing1),
 		BadgeQuit:   lipgloss.NewStyle().Foreground(t.Bg).Background(t.Warn).Padding(0, Spacing1),
@@ -190,17 +192,17 @@ func (s Styles) StatusBadge(st core.Status) string {
 		style = s.BadgeMuted.Background(s.Theme.Muted).Foreground(s.Theme.Bg)
 		text = IconTodo + "TODO"
 	case core.StatusDoing:
-		style = s.BadgeWarn.Background(s.Theme.Warn).Foreground(s.Theme.Bg)
+		style = s.BadgeDoing
 		text = IconDoing + "DOING"
 	case core.StatusDone:
-		style = s.BadgeGood.Background(s.Theme.Good).Foreground(s.Theme.Bg)
+		style = s.BadgeGood
 		text = IconDone + "DONE"
 	default:
 		style = s.BadgeMuted
 		text = string(st)
 	}
 
-	return style.Padding(0, Spacing1).Render(text)
+	return style.Render(text)
 }
 
 func (s Styles) PriorityBadge(p core.Priority) string {
@@ -215,10 +217,10 @@ func (s Styles) PriorityBadge(p core.Priority) string {
 		style = s.BadgeMuted.Background(s.Theme.Muted).Foreground(s.Theme.Bg)
 		text = IconPriority1 + "P1"
 	case core.P2:
-		style = s.BadgeWarn.Background(s.Theme.Warn).Foreground(s.Theme.Bg)
+		style = s.BadgeWarn
 		text = IconPriority2 + "P2"
 	case core.P3:
-		style = s.BadgeBad.Background(s.Theme.Bad).Foreground(s.Theme.Bg)
+		style = s.BadgeBad
 		text = IconPriority3 + "P3"
 	default:
 		style = s.BadgeMuted
@@ -227,7 +229,7 @@ func (s Styles) PriorityBadge(p core.Priority) string {
 
 	pill := lipgloss.JoinHorizontal(lipgloss.Left,
 		s.TagLeft.Foreground(style.GetBackground()).Render(),
-		style.Render(text),
+		style.Padding(0, 0).Render(text),
 		s.TagRight.Foreground(style.GetBackground()).Render(),
 	)
 
