@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.6.1 (2026-05-09)
+
+### Added
+* **Onboarding Enhancement**: Added "Filter by Tag" step to the Welcome Tour.
+* **Help Menu Clarity**: Included the Focus Engine and updated Filter by Tag shortcuts in the in-app help screen.
+
+### Changed
+* **Shortcut Synchronization**: Standardized documentation across TUI help, Welcome Tour, and README to reflect the new `f` (Focus) and `ctrl+f` (Filter) keybindings.
+
 ## v1.6.0 (2026-05-09)
 
 ### Added

@@ -100,7 +100,8 @@ func (m Model) View() string {
 			"Navigation",
 			[]struct{ key, desc string }{
 				{"1-9", styles.IconView + "Switch views (tabs)"},
-				{"f", styles.IconTag + "Filter by tag (Tag view)"},
+				{"f", "󰔟 " + "Focus engine"},
+				{"ctrl+f", styles.IconTag + "Filter by tag (Tag view)"},
 				{getK(m.km.OpenTask), styles.IconView + "View task details"},
 				{getK(m.km.ProjectSwitcher), "󰜎 " + "Switch project"},
 				{getK(m.km.Back), "󰌍 " + "Back / Close"},

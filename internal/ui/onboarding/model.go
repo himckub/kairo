@@ -18,6 +18,7 @@ const (
 	StepNavigation
 	StepCreation
 	StepCompletion
+	StepFilter
 	StepDashboard
 	StepAI
 	StepRecurring
@@ -102,6 +103,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case StepCompletion:
 			if x.String() == "z" {
+				m.step = StepFilter
+			}
+		case StepFilter:
+			if x.Type == tea.KeyCtrlF || strings.EqualFold(x.String(), "ctrl+f") {
 				m.step = StepDashboard
 			}
 		case StepDashboard:
@@ -177,6 +182,10 @@ func (m Model) View() string {
 		title = "MARK AS DONE"
 		body = "The best part of productivity is checking things off."
 		action = "Press [Z] to complete a task"
+	case StepFilter:
+		title = "ORGANIZE BY TAG"
+		body = "Keep your tasks categorized and find what you need instantly."
+		action = "Press [CTRL+F] to filter by tag"
 	case StepDashboard:
 		title = "COMMAND CENTER"
 		body = "Analyze your productivity, momentum, and focus trends in the Command Center."
@@ -236,7 +245,7 @@ func (m Model) View() string {
 }
 
 func (m Model) renderProgress() string {
-	steps := 11
+	steps := 12
 	var b strings.Builder
 	for i := 0; i < steps; i++ {
 		if i == int(m.step) {
