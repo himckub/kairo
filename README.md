@@ -20,6 +20,9 @@ A premium, minimalist task manager designed for focus. Kairo strips away the noi
 
 </div>
 
+**YouTube tutorial playlist (in dev):**  
+https://youtube.com/playlist?list=PLvaz_NYJcySmNh28QzxLqV5HRrTslEaUo&si=XY8YvRnrhqxqU6RD
+
 ---
 
 ## Why Kairo?
