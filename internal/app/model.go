@@ -586,6 +586,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.set.SetStyles(m.s)
 		m.list.Animations = m.cfg.App.Animations // Sync animations setting to tasklist
 
+		if m.edit != nil {
+			m.edit.SetPreview(m.cfg.Edit.Preview)
+		}
+
 		m.rebuildViews()
 		m.rebuildPaletteIndex()
 
@@ -953,7 +957,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case openEditMsg:
-		e := editor.New(m.s, editor.ModeEdit, x.Task, true)
+		e := editor.New(m.s, editor.ModeEdit, x.Task, m.cfg.Edit.Preview)
 		m.edit = &e
 		m.rebuildComponentSizes()
 		m.mode = ModeEditor
@@ -1406,7 +1410,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case keymapMatch(m.km.NewTask, km):
 					task := core.Task{Status: core.StatusTodo, Priority: core.P1}
 					m.activeFilter().ApplyToTask(&task)
-					e := editor.New(m.s, editor.ModeNew, task, false)
+					e := editor.New(m.s, editor.ModeNew, task, m.cfg.Edit.Preview)
 					m.edit = &e
 					m.rebuildComponentSizes()
 					m.mode = ModeEditor
@@ -2724,7 +2728,7 @@ func utilTruncate(s string, w int) string {
 func (m *Model) runCommand(id string) tea.Cmd {
 	switch id {
 	case "cmd:new":
-		e := editor.New(m.s, editor.ModeNew, core.Task{Status: core.StatusTodo, Priority: core.P1}, false)
+		e := editor.New(m.s, editor.ModeNew, core.Task{Status: core.StatusTodo, Priority: core.P1}, m.cfg.Edit.Preview)
 		m.edit = &e
 		m.rebuildComponentSizes()
 		m.mode = ModeEditor

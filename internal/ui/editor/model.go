@@ -245,6 +245,10 @@ func (m *Model) SetParentID(id string) {
 
 func (m Model) Init() tea.Cmd { return nil }
 
+func (m *Model) SetPreview(preview bool) {
+	m.showPreview = preview
+}
+
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch x := msg.(type) {
 	case tea.KeyMsg:
