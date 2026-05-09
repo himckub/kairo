@@ -151,6 +151,7 @@ diy     = "bg=accent"
   <img src="screenshots/dashboard.png" width="30%" />
   <img src="screenshots/welcome_tour.png" width="30%" />
   <img src="screenshots/focus_mode.png" width="30%" />
+  <img src="screenshots/palette.png" width="30%" />
 </div>
 
 ---
