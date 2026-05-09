@@ -1003,6 +1003,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.mode = ModeList
 				return m, m.deleteTasksCmd(ids)
+			case "t":
+				visible := m.list.GetVisibleTasks()
+				var ids []string
+				for _, item := range visible {
+					ids = append(ids, item.ID)
+				}
+				m.mode = ModeList
+				var animCmd tea.Cmd
+				if m.cfg.App.Animations {
+					m.transitioning = m.cfg.App.Animations
+					m.transitionStarted = time.Now()
+					m.animationGen++
+					animCmd = m.viewTransitionTickCmd()
+				}
+				return m, tea.Batch(m.deleteTasksCmd(ids), animCmd)
 			case "a":
 				m.mode = ModeList
 				var animCmd tea.Cmd
@@ -2035,7 +2050,7 @@ func (m *Model) renderFooter() string {
 		delLeft := m.s.TagLeft.Foreground(m.s.Theme.Bad).Render()
 		delRight := m.s.TagRight.Foreground(m.s.Theme.Bad).Render()
 		delPill := delLeft + m.s.BadgeDelete.Render("DELETE?") + delRight
-		left = " " + delPill + " " + makePill("y/enter confirm") + sep + makePill("a delete all") + sep + makePill("n/esc cancel")
+		left = " " + delPill + " " + makePill("y/enter confirm") + sep + makePill("t delete tab") + sep + makePill("a delete all") + sep + makePill("n/esc cancel")
 	case ModeConfirmQuit:
 		quitLeft := m.s.TagLeft.Foreground(m.s.Theme.Warn).Render()
 		quitRight := m.s.TagRight.Foreground(m.s.Theme.Warn).Render()

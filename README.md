@@ -101,13 +101,13 @@ A Lua plugin system hooks into task events. A headless CLI API enables full scri
 Kairo now tracks your every move with a local history engine. Instantly reverse mistakes with `ctrl+z` or re-apply undone actions with `ctrl+y`. Supports task creation, deletion (including bulk), editing, and status changes. Everything is synchronized live with the database.
 
 ### 🎨 Tag Highlighting
-Color-code your tags directly in `config.toml`. Supports hex codes or theme-aware `ui-*` aliases (e.g., `ui-accent`).
+Color-code your tags directly in `config.toml`. Supports hex codes or theme-aware aliases (e.g., `accent`).
 
 ```toml
 [tags.highlight]
 work    = { fg = "#CCCCCC" }
 private = "fg=#EEEEEE,bg=#0000FF,bold"
-diy     = "bg=ui-accent"
+diy     = "bg=accent"
 ```
 
 ---
@@ -143,6 +143,7 @@ diy     = "bg=ui-accent"
   <img src="screenshots/settings_menu.png" width="30%" />
   <img src="screenshots/theme_menu.png" width="30%" />
   <img src="screenshots/dashboard.png" width="30%" />
+  <img src="screenshots/welcome_tour.png" width="30%" />
 </div>
 
 ---

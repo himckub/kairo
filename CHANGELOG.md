@@ -26,8 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `[projects] default = "project_name"` config to set startup project.
   - Added `<All Projects>` view to see tasks across all contexts.
   - Projects are now visible in the header and can be optionally displayed in the list view.
-  - Added per-tag color highlighting via `[tags.highlight]` in config.toml with `ui-*` theme alias support.
-  - Added `edit.preview` config option to persist the preview panel's default state.
+  - Added per-tag color highlighting via `[tags.highlight]` in config.toml with theme-aware alias support.  - Added `edit.preview` config option to persist the preview panel's default state.
   - Added task duplication with `D` shortcut; automatically opens edit mode on the duplicate.
   - Added Multi-Selection support:
     - Toggle task selection with `Space`.
@@ -144,7 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Interactive Onboarding**: A complete, keyboard-driven welcome tour for new users with a "smooth af" animated slanted logo that cycles through theme colors. Teaches core navigation, task creation, and completion in under 60 seconds.
+* **Interactive Onboarding**: A complete, keyboard-driven welcome tour for new users with a "smooth af" animated slanted logo that cycles through theme colors. Teaches core navigation, task creation, completion, and now includes **Undo/Redo (ctrl+z/y)**.
 - **Onboarding Trigger**: Added `ctrl+d` as a global shortcut to relaunch the welcome tour at any time.
 - **Auto-Onboarding**: Kairo now automatically launches the welcome tour on new installations to ensure a smooth first-time experience.
 - **AI Assistant Polish**: The AI Assistant shortcut (`ctrl+a`), footer pill, and help menu entry are now fully disabled and hidden if no Gemini API key is configured, providing a cleaner interface for new users.

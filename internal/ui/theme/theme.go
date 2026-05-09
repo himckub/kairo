@@ -18,35 +18,6 @@ type Theme struct {
 	Overlay lipgloss.Color
 }
 
-func (t Theme) GetColor(alias string) (lipgloss.Color, bool) {
-	switch alias {
-	case "ui-red":
-		return t.Bad, true
-	case "ui-green":
-		return t.Good, true
-	case "ui-yellow":
-		return t.Warn, true
-	case "ui-blue":
-		return t.Accent, true
-	case "ui-magenta":
-		return t.Bad, true // Fallback
-	case "ui-cyan":
-		return t.Accent, true // Fallback
-	case "ui-warn":
-		return t.Warn, true
-	case "ui-info":
-		return t.Accent, true
-	case "ui-error":
-		return t.Bad, true
-	case "ui-accent":
-		return t.Accent, true
-	case "ui-muted":
-		return t.Muted, true
-	default:
-		return "", false
-	}
-}
-
 // --- DARK THEMES ---
 
 var Catppuccin = Theme{
