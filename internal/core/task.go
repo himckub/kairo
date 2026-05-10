@@ -85,6 +85,33 @@ type Task struct {
 
 // ... update MarshalJSON/UnmarshalJSON accordingly ...
 
+func (t Task) DeepCopy() Task {
+	clone := t
+	if t.Deadline != nil {
+		d := *t.Deadline
+		clone.Deadline = &d
+	}
+	if t.WaitUntil != nil {
+		w := *t.WaitUntil
+		clone.WaitUntil = &w
+	}
+	if t.Until != nil {
+		u := *t.Until
+		clone.Until = &u
+	}
+	if t.CompletedAt != nil {
+		c := *t.CompletedAt
+		clone.CompletedAt = &c
+	}
+	if t.Tags != nil {
+		clone.Tags = append([]string(nil), t.Tags...)
+	}
+	if t.RecurrenceWeekly != nil {
+		clone.RecurrenceWeekly = append([]string(nil), t.RecurrenceWeekly...)
+	}
+	return clone
+}
+
 func (t Task) NormalizedTags() []string {
 	m := make(map[string]struct{}, len(t.Tags))
 	for _, tag := range t.Tags {

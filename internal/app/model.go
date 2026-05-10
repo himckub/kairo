@@ -470,6 +470,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if x.Refresh {
 			m.rebuildComponentSizes()
 			cmds = append(cmds, m.refreshCmd())
+
+			// If in detail view, also reload the current task to reflect changes (undo/redo)
+			if m.mode == ModeDetail {
+				cmds = append(cmds, m.fetchOpenTaskCmd(m.det.Task().ID))
+			}
 		}
 		return m, tea.Batch(cmds...)
 
@@ -2399,7 +2404,7 @@ func (m *Model) createTaskCmd(t core.Task) tea.Cmd {
 		if err != nil {
 			return errMsg{Err: err}
 		}
-		m.hist.Record(history.CreateOperation(history.OpCreate, "", []string{created.ID}, nil, []core.Task{created}))
+		m.hist.Record(history.CreateOperation(history.OpCreate, "", []string{created.ID}, nil, []core.Task{created.DeepCopy()}))
 		return taskCreatedMsg{Task: created}
 	}
 }
@@ -2419,7 +2424,7 @@ func (m *Model) updateTaskCmd(id string, p core.TaskPatch) tea.Cmd {
 		if p.Status != nil {
 			opType = history.OpToggleStatus
 		}
-		m.hist.Record(history.CreateOperation(opType, "", []string{id}, []core.Task{before}, []core.Task{updated}))
+		m.hist.Record(history.CreateOperation(opType, "", []string{id}, []core.Task{before.DeepCopy()}, []core.Task{updated.DeepCopy()}))
 		return taskUpdatedMsg{Task: updated}
 	}
 }
@@ -2442,7 +2447,7 @@ func (m *Model) deleteTaskCmd(id string) tea.Cmd {
 		if err := m.svc.Delete(m.ctx, id); err != nil {
 			return errMsg{Err: err}
 		}
-		m.hist.Record(history.CreateOperation(history.OpDelete, "", []string{id}, []core.Task{before}, nil))
+		m.hist.Record(history.CreateOperation(history.OpDelete, "", []string{id}, []core.Task{before.DeepCopy()}, nil))
 		return taskDeletedMsg{ID: id}
 	}
 }
@@ -2451,13 +2456,15 @@ func (m *Model) deleteAllTasksCmd() tea.Cmd {
 	return func() tea.Msg {
 		before, _ := m.svc.ListAll(m.ctx)
 		var ids []string
+		var beforeCopy []core.Task
 		for _, t := range before {
 			ids = append(ids, t.ID)
+			beforeCopy = append(beforeCopy, t.DeepCopy())
 		}
 		if err := m.svc.DeleteAll(m.ctx); err != nil {
 			return errMsg{Err: err}
 		}
-		m.hist.Record(history.CreateOperation(history.OpBulkDelete, "Delete All", ids, before, nil))
+		m.hist.Record(history.CreateOperation(history.OpBulkDelete, "Delete All", ids, beforeCopy, nil))
 		return taskUpdatedMsg{} // Trigger reload
 	}
 }
@@ -2522,6 +2529,7 @@ func (m *Model) applyOperation(op *history.Operation, undo bool) error {
 			tasks = op.Before
 		}
 		for _, t := range tasks {
+			t.UpdatedAt = time.Now()
 			if err := m.svc.UpsertTask(m.ctx, t); err != nil {
 				return err
 			}
