@@ -11,6 +11,7 @@
 !*.webp
 !*.mp4
 !*.mov
+!*.ico
 
 # Ignore OS-specific junk
 .DS_Store

@@ -9,7 +9,7 @@ const darkTheme = themes.dracula;
 const config = {
   title: 'Kairo',
   tagline: 'The terminal task manager for developers who live in their editor.',
-  favicon: 'logo.png',
+  favicon: 'favicon.ico',
 
   // Set the production url of your site here
   url: 'https://programmersd21.github.io',
