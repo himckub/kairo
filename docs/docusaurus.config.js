@@ -1,7 +1,7 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const {themes} = require('prism-react-renderer');
+const { themes } = require('prism-react-renderer');
 const lightTheme = themes.github;
 const darkTheme = themes.dracula;
 
@@ -21,6 +21,8 @@ const config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'programmersd21', // Usually your GitHub org/user name.
   projectName: 'kairo', // Usually your repo name.
+
+  staticDirectories: ['static', 'assets'],
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -62,7 +64,7 @@ const config = {
         title: 'Kairo',
         logo: {
           alt: 'Kairo Logo',
-          src: 'img/logo.png',
+          src: 'logo.png',
         },
         items: [
           {
