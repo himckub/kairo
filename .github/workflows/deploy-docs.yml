@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -31,20 +31,10 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: docs/package.json
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        id: cache-node-modules
-        with:
-          path: docs/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('docs/package.json', 'docs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          cache-dependency-path: docs/package-lock.json
 
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: npm install
+        run: npm ci
         working-directory: docs
 
       - name: Build website
@@ -57,6 +47,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build
           publish_branch: docs
+          exclude_assets: ''
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'docs: deploy documentation [skip ci]'
+          
