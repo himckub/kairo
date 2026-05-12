@@ -21,7 +21,7 @@ const sidebars = {
       type: 'category',
       label: 'Core Concepts',
       items: [
-        'core-concepts/tasks',
+        'core-concepts/task-management',
         'core-concepts/projects',
         'core-concepts/recurring-tasks',
       ],

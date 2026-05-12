@@ -60,8 +60,8 @@ config.toml
 local/
 
 # tasks metdata
-tasks.json
-tasks.md
+/tasks.json
+/tasks.md
 
 # =========================
 # 🔐 Optional (future-proof)
