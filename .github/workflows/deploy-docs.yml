@@ -41,13 +41,15 @@ jobs:
         run: npm run build
         working-directory: docs
 
+      - name: Remove .gitignore from build output
+        run: rm -f docs/build/.gitignore
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build
           publish_branch: docs
-          exclude_assets: ''          # <-- this is what was killing the HTML/JS/CSS
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'docs: deploy documentation [skip ci]'
