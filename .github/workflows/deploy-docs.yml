@@ -31,10 +31,10 @@ jobs:
         with:
           node-version: 22
           cache: 'npm'
-          cache-dependency-path: docs/package.json  # no lockfile to rely on
+          cache-dependency-path: docs/package.json
 
       - name: Install dependencies
-        run: npm install  # npm ci won't work without a synced lockfile
+        run: npm install
         working-directory: docs
 
       - name: Build website
@@ -47,7 +47,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/build
           publish_branch: docs
-          exclude_assets: ''
+          exclude_assets: ''          # <-- this is what was killing the HTML/JS/CSS
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'docs: deploy documentation [skip ci]'
