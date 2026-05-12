@@ -240,9 +240,60 @@ func computeTagClusters(tasks []core.Task) []TagCluster {
 }
 
 func computeStreaks(tasks []core.Task) StreakData {
+	completedDays := make(map[time.Time]struct{})
+	for _, task := range tasks {
+		if task.CompletedAt == nil {
+			continue
+		}
+		completedAt := task.CompletedAt.Local()
+		day := time.Date(completedAt.Year(), completedAt.Month(), completedAt.Day(), 0, 0, 0, 0, time.Local)
+		completedDays[day] = struct{}{}
+	}
+
+	if len(completedDays) == 0 {
+		return StreakData{Warning: false}
+	}
+
+	days := make([]time.Time, 0, len(completedDays))
+	for day := range completedDays {
+		days = append(days, day)
+	}
+	sort.Slice(days, func(i, j int) bool { return days[i].Before(days[j]) })
+
+	longest := 1
+	run := 1
+	for i := 1; i < len(days); i++ {
+		if days[i].Equal(days[i-1].AddDate(0, 0, 1)) {
+			run++
+		} else {
+			run = 1
+		}
+		if run > longest {
+			longest = run
+		}
+	}
+
+	now := time.Now().Local()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	current := streakEndingAt(completedDays, today)
+	if current == 0 {
+		current = streakEndingAt(completedDays, today.AddDate(0, 0, -1))
+	}
+
 	return StreakData{
-		Current: 5,
-		Longest: 12,
+		Current: current,
+		Longest: longest,
 		Warning: false,
 	}
+}
+
+func streakEndingAt(completedDays map[time.Time]struct{}, end time.Time) int {
+	streak := 0
+	for day := end; ; day = day.AddDate(0, 0, -1) {
+		if _, ok := completedDays[day]; !ok {
+			break
+		}
+		streak++
+	}
+	return streak
 }
