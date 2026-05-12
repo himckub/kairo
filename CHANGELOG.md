@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.5] (2026-05-12)
+
+### Fixed
+- **Task List Alignment**: Totally separated 'tags', 'due', and 'priority' into distinct, fixed-width columns to improve UI consistency and readability. Columns now maintain their relative positions regardless of whether specific data (like due dates or tags) is present.
+
 ## [1.6.4] (2026-05-12)
 
 ### Fixed

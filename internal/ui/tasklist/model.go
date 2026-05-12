@@ -592,6 +592,9 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 	if len(order) == 0 {
 		order = []string{"tags", "due", "priority"}
 	}
+
+	// Helper to create a container for fixed-width right-side items
+	// Adjust widths to ensure they don't bleed or stack
 	for _, f := range order {
 		switch f {
 		case "priority":
@@ -608,7 +611,6 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 
 				dueContent := styles.IconDeadline + formatDue(deadText, m.DueMinimal)
 
-				// Create pill badge for due date
 				badge := m.styles.BadgeMuted.
 					Background(m.styles.Theme.Muted).
 					Foreground(m.styles.Theme.Bg).
@@ -621,10 +623,12 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 				)
 
 				if m.DueMinimal && maxDueWidth > 0 {
-					// container width = max content width + padding (2) + caps (2)
 					pill = lipgloss.NewStyle().Width(maxDueWidth + 4).Align(lipgloss.Left).Render(pill)
 				}
 				rightParts = append(rightParts, pill)
+			} else {
+				// Maintain alignment even if due is missing
+				rightParts = append(rightParts, lipgloss.NewStyle().Width(12).Render(""))
 			}
 		case "tags":
 			if len(t.Tags) > 0 {
@@ -664,8 +668,15 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 		}
 	}
 
-	right := strings.Join(rightParts, " ")
-
+	var right string
+	if len(rightParts) == 0 {
+		right = ""
+	} else {
+		right = rightParts[0]
+		for i := 1; i < len(rightParts); i++ {
+			right = lipgloss.JoinHorizontal(lipgloss.Right, right, lipgloss.NewStyle().Width(1).Render(""), rightParts[i])
+		}
+	}
 	// Use render.BarLine: fills the gap between left and right with bg-styled spaces.
 	// Subtract 2 for the Padding(0,1) applied by rowStyle below.
 	innerWidth := m.width - 2
