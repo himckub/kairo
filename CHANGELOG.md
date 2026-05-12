@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] (2026-05-12)
+
+### Fixed
+
+* **Dynamic Stats Streaks**: Replaced hard-coded stats streak values with streaks computed directly from completed task history.
+
+  * Multiple task completions on the same calendar day are now deduplicated correctly.
+  * Longest streaks are now accurately calculated from consecutive completion days.
+  * Current streaks remain active if the last completion occurred today or yesterday, preventing premature resets.
+  * Stale streaks now correctly reset instead of displaying outdated values.
+* **Current Streak Accuracy**: Prevented the stats dashboard from incorrectly displaying `0` before the user completes a task for the current day.
+
+### Added
+
+* **Focused Streak Tests**:
+
+  * Added coverage for empty task lists.
+  * Added tests for duplicate completions on a single day.
+  * Added validation for yesterday-ending active streaks.
+  * Added stale streak reset verification.
+  * Added tests distinguishing longest streak behavior from current streak behavior.
+
 ## [1.6.3] (2026-05-10)
 
 ### Fixed
