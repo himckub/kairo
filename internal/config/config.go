@@ -37,6 +37,7 @@ type ProjectsConfig struct {
 	Default    string `toml:"default"`
 	Shortcut   string `toml:"shortcut"`
 	ShowColumn string `toml:"show_column"` // "auto" | "always" | "never"
+	Order      string `toml:"order"`       // "alphabetical" | "recent"
 }
 
 type ListConfig struct {
@@ -88,18 +89,19 @@ func normalizeRightOrder(in []string) []string {
 }
 
 type AppConfig struct {
-	Theme               string `toml:"theme"`
-	ActiveProject       string `toml:"active_project"`
-	VimMode             bool   `toml:"vim_mode"`
-	ShowHelp            bool   `toml:"show_help"`
-	ShowID              bool   `toml:"show_id"`
-	Rainbow             bool   `toml:"rainbow"`
-	GeminiAPIKey        string `toml:"gemini_api_key"`
-	AIModel             string `toml:"ai_model"`
-	MCPEnabled          bool   `toml:"mcp_enabled"`
-	MCPPort             string `toml:"mcp_port"`
-	Animations          bool   `toml:"animations"`
-	OnboardingCompleted bool   `toml:"onboarding_completed"`
+	Theme               string   `toml:"theme"`
+	ActiveProject       string   `toml:"active_project"`
+	VimMode             bool     `toml:"vim_mode"`
+	ShowHelp            bool     `toml:"show_help"`
+	ShowID              bool     `toml:"show_id"`
+	Rainbow             bool     `toml:"rainbow"`
+	GeminiAPIKey        string   `toml:"gemini_api_key"`
+	AIModel             string   `toml:"ai_model"`
+	MCPEnabled          bool     `toml:"mcp_enabled"`
+	MCPPort             string   `toml:"mcp_port"`
+	Animations          bool     `toml:"animations"`
+	OnboardingCompleted bool     `toml:"onboarding_completed"`
+	RecentProjects      []string `toml:"recent_projects"`
 }
 
 type StorageConfig struct {
@@ -166,6 +168,8 @@ type KeymapConfig struct {
 	ProjectSwitcher string `toml:"project_switcher"`
 	Undo            string `toml:"undo"`
 	Redo            string `toml:"redo"`
+	FocusSidebar    string `toml:"focus_sidebar"`
+	FocusList       string `toml:"focus_list"`
 }
 
 func Default() Config {
@@ -185,6 +189,7 @@ func Default() Config {
 			Default:    "default",
 			Shortcut:   "p",
 			ShowColumn: "auto",
+			Order:      "alphabetical",
 		},
 		Edit: EditConfig{
 			Preview: true,
@@ -261,6 +266,8 @@ func Default() Config {
 			ProjectSwitcher: "ctrl+e",
 			Undo:            "ctrl+z",
 			Redo:            "ctrl+y",
+			FocusSidebar:    "[",
+			FocusList:       "]",
 		},
 	}
 }

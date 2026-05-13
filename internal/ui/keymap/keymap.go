@@ -44,6 +44,8 @@ type Keymap struct {
 	Focus           key.Binding
 	Undo            key.Binding
 	Redo            key.Binding
+	FocusSidebar    key.Binding
+	FocusList       key.Binding
 }
 
 type HistoryListKeyMap struct {
@@ -95,6 +97,8 @@ func FromConfig(c config.KeymapConfig) Keymap {
 		Focus:           key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "focus engine")),
 		Undo:            bind(c.Undo, "undo", "undo last action"),
 		Redo:            bind(c.Redo, "redo", "redo last undone action"),
+		FocusSidebar:    bind(c.FocusSidebar, "sidebar", "focus sidebar"),
+		FocusList:       bind(c.FocusList, "list", "focus task list"),
 	}
 }
 func bind(keys, helpKey, helpDesc string) key.Binding {

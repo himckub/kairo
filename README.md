@@ -79,8 +79,8 @@ Press `n` to create your first task. `ctrl+s` to save. That's it.
 ### ⚡ Genuinely Fast
 Sub-millisecond fuzzy search. Vim bindings (`j/k/gg/G`). Natural language deadlines like `tomorrow 10am` or `next friday`. Full keyboard control — you never touch the mouse.
 
-### 🗂 Nested Tasks & Hierarchy
-Organize work into deep hierarchies and separate projects. Nest tasks via the **Parent** field in the editor, switch projects with `ctrl+e` to focus your workspace, and export/import with full structure preserved — across JSON, CSV, Markdown, and plain text.
+### 🗂 Project Sidebar & Hierarchy
+Organize work into deep hierarchies and separate projects. Toggle the **Project Sidebar** with `ctrl+e` for quick navigation, fuzzy find projects by name, and switch between projects using arrow keys. Project ordering is customizable via `config.toml` (e.g., `[projects] order = "alphabetical"|"recent"`). Nest tasks via the **Parent** field in the editor, and export/import with full structure preserved — across JSON, CSV, Markdown, and plain text.
 
 ### 🔁 Recurring Tasks
 Tasks reappear automatically on a schedule. Weekly (`mon,wed,fri`) or monthly (`15`). When completed, Kairo generates the next instance immediately with a smart due-date preview.

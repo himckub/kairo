@@ -599,7 +599,8 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 		switch f {
 		case "priority":
 			pri := m.styles.PriorityBadge(t.Priority)
-			rightParts = append(rightParts, pri)
+			// Priority badges need fixed width and right alignment to stack perfectly
+			rightParts = append(rightParts, lipgloss.NewStyle().Width(8).Align(lipgloss.Right).Render(pri))
 		case "due":
 			if t.Deadline != nil {
 				now := time.Now()
@@ -614,7 +615,7 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 				badge := m.styles.BadgeMuted.
 					Background(m.styles.Theme.Muted).
 					Foreground(m.styles.Theme.Bg).
-					Padding(0, 1)
+					Padding(0, 0)
 
 				pill := lipgloss.JoinHorizontal(lipgloss.Left,
 					m.styles.TagLeft.Foreground(deadStyleColor).Render(),
@@ -622,15 +623,21 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 					m.styles.TagRight.Foreground(deadStyleColor).Render(),
 				)
 
-				if m.DueMinimal && maxDueWidth > 0 {
-					pill = lipgloss.NewStyle().Width(maxDueWidth + 4).Align(lipgloss.Left).Render(pill)
-				}
-				rightParts = append(rightParts, pill)
+				// Use a flexible width for the container, let's try reducing container width if it's too much.
+				// But we need to keep the 16 width for alignment.
+				styledPill := lipgloss.NewStyle().Width(16).Align(lipgloss.Center).Render(pill)
+				rightParts = append(rightParts, styledPill)
 			} else {
-				// Maintain alignment even if due is missing
-				rightParts = append(rightParts, lipgloss.NewStyle().Width(12).Render(""))
+				// Use a subtle theme-aware dash indicator for missing deadlines, same fixed width
+				dash := lipgloss.NewStyle().
+					Foreground(m.styles.Theme.Muted).
+					Width(16).
+					Align(lipgloss.Center).
+					Render("—")
+				rightParts = append(rightParts, dash)
 			}
 		case "tags":
+			tagStr := ""
 			if len(t.Tags) > 0 {
 				tagParts := []string{}
 				for _, tag := range t.Tags {
@@ -650,11 +657,13 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 					)
 					tagParts = append(tagParts, pill)
 				}
-				rightParts = append(rightParts, strings.Join(tagParts, " "))
+				tagStr = strings.Join(tagParts, " ")
 			}
+			rightParts = append(rightParts, tagStr)
 		case "project":
+			var projPill string
 			if t.Project != "" {
-				pill := lipgloss.JoinHorizontal(lipgloss.Left,
+				projPill = lipgloss.JoinHorizontal(lipgloss.Left,
 					m.styles.TagLeft.Foreground(m.styles.Theme.Muted).Render(),
 					m.styles.Tag.
 						Background(m.styles.Theme.Muted).
@@ -663,8 +672,8 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 						Render(t.Project),
 					m.styles.TagRight.Foreground(m.styles.Theme.Muted).Render(),
 				)
-				rightParts = append(rightParts, pill)
 			}
+			rightParts = append(rightParts, lipgloss.NewStyle().Width(14).Align(lipgloss.Right).Render(projPill))
 		}
 	}
 
@@ -672,6 +681,7 @@ func (m Model) renderRow(item TaskItem, selected bool, maxDueWidth int) string {
 	if len(rightParts) == 0 {
 		right = ""
 	} else {
+		// Join parts with a small spacer for consistent professional gap
 		right = rightParts[0]
 		for i := 1; i < len(rightParts); i++ {
 			right = lipgloss.JoinHorizontal(lipgloss.Right, right, lipgloss.NewStyle().Width(1).Render(""), rightParts[i])

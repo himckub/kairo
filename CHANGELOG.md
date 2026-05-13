@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] (2026-05-13)
+
+### Added
+- **Project Sidebar**: Added a dedicated project sidebar pane for intuitive project navigation.
+  - **Fuzzy Find**: Quickly locate and switch between projects.
+  - **Keyboard Navigation**: Use up/down arrow keys for seamless project switching.
+  - **Customizable Order**: Configurable via `[projects] order = "alphabetical"|"recent"`.
+  - **Toggle**: Use `ctrl+e` to show/hide the sidebar.
+  - **Switch Panels**: Added shortcut keys to switch focus between the project sidebar and task panels.
+- **Documentation**: Updated README and help documentation to include new sidebar functionality.
+
 ## [1.6.5] (2026-05-12)
 
 ### Fixed

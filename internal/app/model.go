@@ -40,6 +40,7 @@ import (
 	"github.com/programmersd21/kairo/internal/ui/plugin_menu"
 	"github.com/programmersd21/kairo/internal/ui/render"
 	"github.com/programmersd21/kairo/internal/ui/settings"
+	"github.com/programmersd21/kairo/internal/ui/sidebar"
 	"github.com/programmersd21/kairo/internal/ui/stats"
 	"github.com/programmersd21/kairo/internal/ui/styles"
 	"github.com/programmersd21/kairo/internal/ui/tasklist"
@@ -102,6 +103,7 @@ const (
 	ModeOnboarding
 	ModeStats
 	ModeProjectSwitcher
+	ModeProjectSidebar
 	ModeFocus
 )
 
@@ -118,10 +120,10 @@ type Model struct {
 	width  int
 	height int
 
-	mode Mode
+	mode           Mode
+	sidebarVisible bool
 
 	activeProject string
-
 	views         []core.View
 	activeIdx     int
 	prevActiveIdx int
@@ -129,6 +131,7 @@ type Model struct {
 	priParam      *core.Priority
 
 	list       tasklist.Model
+	side       sidebar.Model
 	pal        palette.Model
 	det        detail.Model
 	edit       *editor.Model
@@ -254,6 +257,9 @@ func New(ctx context.Context, cfg config.Config, svc service.TaskService) (tea.M
 	m.list = tasklist.New(m.s, cfg.App.VimMode, cfg.App.Animations, m.km, cfg.List.Fields.Due.Minimal)
 	m.list.SetTagsConfig(cfg.Tags.Highlight)
 	m.list.SetRightOrder(cfg.List.Order.Right)
+	m.side = sidebar.New(m.s)
+	m.side.SetProjects(m.projects, cfg.Projects.Order, cfg.App.RecentProjects)
+	m.side.SetActive(m.activeProject)
 	m.pal = palette.New(m.s)
 	m.det = detail.New(m.s)
 	m.hlp = help.New(m.s, m.km)
@@ -498,6 +504,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case projectsLoadedMsg:
 		m.projects = x.Projects
+		m.side.SetProjects(m.projects, m.cfg.Projects.Order, m.cfg.App.RecentProjects)
+		m.side.SetActive(m.activeProject)
 		m.rebuildProjectsIndex()
 		return m, nil
 
@@ -749,18 +757,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.mode = ModeList
 		switch x.Item.Kind {
-		case search.KindProject:
-			m.activeProject = x.Item.ID
-			m.cfg.App.ActiveProject = m.activeProject
-			_ = m.cfg.Save()
-			var animCmd tea.Cmd
-			if m.cfg.App.Animations {
-				m.transitioning = m.cfg.App.Animations
-				m.transitionStarted = time.Now()
-				m.animationGen++
-				animCmd = m.viewTransitionTickCmd()
-			}
-			return m, tea.Batch(m.loadTasksCmd(), animCmd)
 		case search.KindTask:
 			return m, m.fetchOpenTaskCmd(x.Item.ID)
 		case search.KindTag:
@@ -775,6 +771,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.runCommand(x.Item.ID)
 		}
 		return m, nil
+
+	case sidebar.SelectMsg:
+		m.activeProject = x.Project
+		m.updateRecentProject(m.activeProject)
+		m.cfg.App.ActiveProject = m.activeProject
+		_ = m.cfg.Save()
+		m.side.SetProjects(m.projects, m.cfg.Projects.Order, m.cfg.App.RecentProjects)
+		m.side.SetActive(m.activeProject)
+		var animCmd tea.Cmd
+		if m.cfg.App.Animations {
+			m.transitioning = m.cfg.App.Animations
+			m.transitionStarted = time.Now()
+			m.animationGen++
+			animCmd = m.viewTransitionTickCmd()
+		}
+		return m, tea.Batch(m.loadTasksCmd(), animCmd)
 
 	case editor.CloseMsg:
 		if m.mode == ModeEditor {
@@ -869,10 +881,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case taskDeletedMsg:
-		// Deleting a task can orphan tags; prune & reload tags immediately so
-		// tag-related UI/palette stays accurate without requiring a restart.
+		// Deleting a task can orphan tags/projects; prune & reload so
+		// UI stays accurate without requiring a restart.
 		m.rebuildComponentSizes()
-		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.refreshCmd(), m.syncIfEnabledCmd())
+		return m, tea.Batch(m.pruneAndLoadTagsCmd(), m.loadProjectsCmd(), m.refreshCmd(), m.syncIfEnabledCmd())
 
 	case rainbowTickMsg:
 		if !m.cfg.App.Rainbow {
@@ -1147,26 +1159,43 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Mode-specific toggles that should work even when the mode is active (and thus input is focused)
-		if m.mode == ModeProjectSwitcher && keymapMatch(m.km.ProjectSwitcher, km) {
-			m.mode = ModeList
-			return m, nil
-		}
-		if m.mode == ModePalette && keymapMatch(m.km.Palette, km) {
-			m.mode = ModeList
+		// Sidebar toggle
+		if keymapMatch(m.km.ProjectSwitcher, km) {
+			m.sidebarVisible = !m.sidebarVisible
+			if m.sidebarVisible {
+				m.mode = ModeProjectSidebar
+				m.side.Focus(true)
+			} else {
+				m.mode = ModeList
+				m.side.Focus(false)
+			}
+			m.rebuildComponentSizes()
 			return m, nil
 		}
 
-		// Explicit check for ctrl+e to prevent collision with enter
-		if km.String() == "ctrl+e" {
-			if m.mode == ModeProjectSwitcher {
-				m.mode = ModeList
+		// Focus switching
+		if m.sidebarVisible {
+			if keymapMatch(m.km.FocusSidebar, km) {
+				m.mode = ModeProjectSidebar
+				m.side.Focus(true)
 				return m, nil
 			}
-			m.mode = ModeProjectSwitcher
-			m.applyPaletteIndex()
-			m.pal.SetPlaceholder("Switch project…")
-			return m, m.pal.Open()
+			if keymapMatch(m.km.FocusList, km) {
+				m.mode = ModeList
+				m.side.Focus(false)
+				return m, nil
+			}
+
+			if km.String() == "tab" {
+				if m.mode == ModeProjectSidebar {
+					m.mode = ModeList
+					m.side.Focus(false)
+				} else {
+					m.mode = ModeProjectSidebar
+					m.side.Focus(true)
+				}
+				return m, nil
+			}
 		}
 
 		// Global key handling - only process keybindings if no input field is focused.
@@ -1565,6 +1594,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		e, cmd := m.edit.Update(msg)
 		*m.edit = e
 		return m, cmd
+	case ModeProjectSidebar:
+		var cmd tea.Cmd
+		m.side, cmd = m.side.Update(msg)
+		return m, cmd
 	case ModeDetail:
 		var cmd tea.Cmd
 		return m, cmd
@@ -1653,7 +1686,7 @@ func (m *Model) View() string {
 }
 
 func (m *Model) renderMainUI() string {
-	// Calculate the width budget: when AI panel is visible, the main UI
+	// Calculate the width budget: when AI panel or sidebar is visible, the main UI
 	// shrinks to make room. Both halves must fit within m.width.
 	mainW := m.width
 	aiPanelW := 0
@@ -1662,15 +1695,17 @@ func (m *Model) renderMainUI() string {
 		if aiPanelW < 30 {
 			aiPanelW = 30
 		}
-		mainW = m.width - aiPanelW
-		if mainW < 40 {
-			mainW = 40
-			aiPanelW = m.width - mainW
-		}
+		mainW -= aiPanelW
 	}
 
-	head := m.renderHeaderWithWidth(mainW)
-	foot := m.renderFooterWithWidth(mainW)
+	sidebarW := 0
+	if m.sidebarVisible {
+		sidebarW = 25
+		mainW -= sidebarW
+	}
+
+	head := m.renderHeaderWithWidth(mainW + sidebarW)
+	foot := m.renderFooterWithWidth(mainW + sidebarW)
 
 	hHeight := lipgloss.Height(head)
 	fHeight := lipgloss.Height(foot)
@@ -1679,7 +1714,10 @@ func (m *Model) renderMainUI() string {
 		availableHeight = 0
 	}
 
-	// Update sizes dynamically — use mainW so components don't overflow
+	// Update sizes dynamically
+	if m.sidebarVisible {
+		m.side.SetSize(sidebarW, availableHeight)
+	}
 	m.list.SetSize(mainW, availableHeight)
 	m.det.ShowID = m.cfg.App.ShowID
 	m.det.SetSize(mainW, availableHeight)
@@ -1774,6 +1812,21 @@ func (m *Model) renderMainUI() string {
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Left, head, body, foot)
+
+	if m.sidebarVisible {
+		sidebarContent := m.side.View()
+		sidebarContent = lipgloss.NewStyle().
+			Width(sidebarW).
+			Height(availableHeight).
+			Background(m.s.Theme.Bg).
+			Border(lipgloss.NormalBorder(), false, true, false, false).
+			BorderForeground(m.s.Theme.Border).
+			Render(sidebarContent)
+		// We join body instead of content because head/foot should span full width?
+		// Actually, the user's screenshot shows head/foot spanning only the main area.
+		// Let's re-join with head/foot separately if needed.
+		content = lipgloss.JoinVertical(lipgloss.Left, head, lipgloss.JoinHorizontal(lipgloss.Top, sidebarContent, body), foot)
+	}
 
 	if m.mode == ModeOnboarding {
 		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
@@ -2385,6 +2438,27 @@ func (m *Model) refreshCmd() tea.Cmd {
 		m.loadTagsCmd(),
 		m.loadProjectsCmd(),
 	)
+}
+
+func (m *Model) updateRecentProject(project string) {
+	if project == "" {
+		return
+	}
+	recent := m.cfg.App.RecentProjects
+	// Remove if already exists
+	for i, p := range recent {
+		if p == project {
+			recent = append(recent[:i], recent[i+1:]...)
+			break
+		}
+	}
+	// Prepend
+	recent = append([]string{project}, recent...)
+	// Limit to 50
+	if len(recent) > 50 {
+		recent = recent[:50]
+	}
+	m.cfg.App.RecentProjects = recent
 }
 
 func (m *Model) pruneAndLoadTagsCmd() tea.Cmd {
